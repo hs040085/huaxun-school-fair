@@ -750,5 +750,29 @@ mark{
     font-size: 20px;
   }
 }
+.hero-visual{
+  overflow: hidden;
+}
+
+@media (max-width: 640px){
+  .hero-cloud,
+  .cloud-a,
+  .cloud-b,
+  .cloud-c{
+    display: none !important;
+  }
+
+  .hero-visual::before,
+  .hero-visual::after{
+    display: none !important;
+  }
+
+  .hero-mini-tags,
+  .hero-note,
+  .hero-school{
+    position: relative;
+    z-index: 2;
+  }
+}
 
   }
