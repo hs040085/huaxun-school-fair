@@ -305,16 +305,7 @@ function renderEvents() {
         </div>
         <div class="meta-item">
           <span>結束時間</span>
-          <strong>${event?.endTime || ''}</strong>
-        </div>
-        <div class="meta-item">
-          <span>類型</span>
-          <strong>${event?.type || ''}</strong>
-        </div>
-        <div class="meta-item">
-          <span>可能影響動線</span>
-          <strong>${event?.mayAffectRoute ? '是' : '否'}</strong>
-        </div>
+          <strong>${event?.endTime || ''}</strong>        
       </div>
 
       <div class="items">
