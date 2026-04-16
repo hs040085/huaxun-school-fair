@@ -1,245 +1,320 @@
-﻿let allStalls = [];
+const searchInput = document.getElementById('searchInput');
+const gradeFilter = document.getElementById('gradeFilter');
+const buildingFilter = document.getElementById('buildingFilter');
+const floorFilter = document.getElementById('floorFilter');
+const tagChips = document.getElementById('tagChips');
+const stallGrid = document.getElementById('stallGrid');
+const resultCount = document.getElementById('resultCount');
+const eventGrid = document.getElementById('eventGrid');
+const resetBtn = document.getElementById('resetBtn');
 
-function getGradeFromName(name) {
-  const match = String(name).match(/^(\d)/);
-  return match ? match[1] + "年級" : "其他";
-}
+let stalls = [];
+let events = [];
+let activeTag = '';
 
-function normalizeFloorText(value) {
-  const text = String(value || "").trim();
-  if (!text) return "";
+async function loadData() {
+  try {
+    const [stallsRes, eventsRes] = await Promise.all([
+      fetch('./data/stalls.json'),
+      fetch('./data/events.json')
+    ]);
 
-  if (text === "一樓") return "1樓";
-  if (text === "二樓") return "2樓";
-  if (text === "三樓") return "3樓";
-  if (text === "四樓") return "4樓";
-  if (text === "五樓") return "5樓";
-  if (text === "六樓") return "6樓";
-  if (text === "七樓") return "7樓";
-  if (text === "八樓") return "8樓";
+    if (!stallsRes.ok) {
+      throw new Error(`stalls.json 載入失敗：${stallsRes.status}`);
+    }
 
-  return text;
-}
+    if (!eventsRes.ok) {
+      throw new Error(`events.json 載入失敗：${eventsRes.status}`);
+    }
 
-function getFloorFromRoomCode(roomCode, fallbackFloor) {
-  const code = String(roomCode || "").trim().toUpperCase();
+    stalls = await stallsRes.json();
+    events = await eventsRes.json();
 
-  if (code) {
-    const match = code.match(/^[A-Z]+(\d)/);
-    if (match) {
-      return match[1] + "樓";
+    if (!Array.isArray(stalls)) stalls = [];
+    if (!Array.isArray(events)) events = [];
+
+    initFilters();
+    renderTagChips();
+    renderStalls();
+    renderEvents();
+  } catch (error) {
+    console.error('資料載入失敗：', error);
+
+    if (stallGrid) {
+      stallGrid.innerHTML = `
+        <div class="empty" style="grid-column:1/-1;">
+          <div style="font-size:40px;">⚠️</div>
+          <strong style="display:block; margin-top:8px; color:#4f473f;">資料載入失敗</strong>
+          <div style="margin-top:6px;">請確認 data 資料夾、JSON 格式與檔案路徑是否正確。</div>
+        </div>
+      `;
+    }
+
+    if (resultCount) {
+      resultCount.textContent = '資料載入失敗';
+    }
+
+    if (eventGrid) {
+      eventGrid.innerHTML = `
+        <div class="empty" style="grid-column:1/-1;">
+          <div style="font-size:36px;">⚠️</div>
+          <strong style="display:block; margin-top:8px; color:#4f473f;">其他活動資料載入失敗</strong>
+          <div style="margin-top:6px;">請確認 <code>data/events.json</code> 是否存在且格式正確。</div>
+        </div>
+      `;
     }
   }
-
-  return normalizeFloorText(fallbackFloor);
 }
 
-function getUniqueValues(list, getter) {
-  const values = list
-    .map(getter)
-    .filter(function(value) { return value !== ""; });
+function uniqueValues(list, key) {
+  return [...new Set(
+    list
+      .map(item => item?.[key])
+      .filter(Boolean)
+  )];
+}
 
-  return Array.from(new Set(values)).sort(function(a, b) {
-    return a.localeCompare(b, "zh-Hant-u-nu-latn");
+function populateSelect(select, values) {
+  if (!select) return;
+  values.forEach(value => {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = value;
+    select.appendChild(option);
   });
 }
 
-function populateSelect(selectId, options, defaultLabel) {
-  const select = document.getElementById(selectId);
-  select.innerHTML = '<option value="">' + defaultLabel + '</option>'
-    + options.map(function(option) {
-      return '<option value="' + option + '">' + option + '</option>';
-    }).join("");
+function normalizeKeyword(text) {
+  return (text || '').trim().toLowerCase();
 }
 
-function escapeHtml(text) {
-  return String(text)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+function parseClassKeyword(keyword) {
+  const normalized = (keyword || '').replace(/\s+/g, '');
+  const match = normalized.match(/^([3-6])[-－_]?([1-9])$/);
+  if (!match) return null;
+
+  return {
+    displayName: `${match[1]}年級${match[2]}班`,
+    shortName: `${match[1]}-${match[2]}`
+  };
 }
 
-function escapeRegExp(text) {
-  return String(text).replace(/[.*+?^{}()|[\]\\]/g, "\\$&");
+function initFilters() {
+  populateSelect(gradeFilter, uniqueValues(stalls, 'grade'));
+  populateSelect(buildingFilter, uniqueValues(stalls, 'building'));
+  populateSelect(floorFilter, uniqueValues(stalls, 'floor'));
 }
 
-function highlightText(text, keyword) {
-  const safeText = escapeHtml(text);
+function renderTagChips() {
+  if (!tagChips) return;
 
-  if (!keyword) {
-    return safeText;
-  }
+  const tags = [...new Set(
+    stalls.flatMap(item => Array.isArray(item?.tags) ? item.tags : [])
+  )];
 
-  const escapedKeyword = escapeRegExp(keyword);
-  const regex = new RegExp("(" + escapedKeyword + ")", "gi");
+  tagChips.innerHTML = '';
 
-  return safeText.replace(regex, '<span class="highlight">$1</span>');
+  const allChip = document.createElement('button');
+  allChip.className = `chip ${activeTag === '' ? 'active' : ''}`;
+  allChip.textContent = '全部類型';
+  allChip.addEventListener('click', () => {
+    activeTag = '';
+    renderTagChips();
+    renderStalls();
+  });
+  tagChips.appendChild(allChip);
+
+  tags.forEach(tag => {
+    const btn = document.createElement('button');
+    btn.className = `chip ${activeTag === tag ? 'active' : ''}`;
+    btn.textContent = tag;
+    btn.addEventListener('click', () => {
+      activeTag = activeTag === tag ? '' : tag;
+      renderTagChips();
+      renderStalls();
+    });
+    tagChips.appendChild(btn);
+  });
 }
 
-function updateActiveFilters() {
-  const activeFilters = document.getElementById("activeFilters");
-  const keyword = document.getElementById("searchInput").value.trim();
-  const building = document.getElementById("buildingFilter").value;
-  const floor = document.getElementById("floorFilter").value;
-  const grade = document.getElementById("gradeFilter").value;
+function filterStalls() {
+  const rawKeyword = searchInput?.value || '';
+  const keyword = normalizeKeyword(rawKeyword);
+  const classKeyword = parseClassKeyword(keyword);
 
-  const chips = [];
+  const grade = gradeFilter?.value || '';
+  const building = buildingFilter?.value || '';
+  const floor = floorFilter?.value || '';
 
-  if (keyword) {
-    chips.push('<span class="filter-chip">關鍵字：' + escapeHtml(keyword) + '</span>');
-  }
-  if (building) {
-    chips.push('<span class="filter-chip">大樓：' + escapeHtml(building) + '</span>');
-  }
-  if (floor) {
-    chips.push('<span class="filter-chip">樓層：' + escapeHtml(floor) + '</span>');
-  }
-  if (grade) {
-    chips.push('<span class="filter-chip">年級：' + escapeHtml(grade) + '</span>');
-  }
+  return stalls.filter(item => {
+    const displayName = item?.displayName || '';
+    const shortName = item?.shortName || '';
+    const rawProducts = item?.rawProducts || '';
+    const items = Array.isArray(item?.items) ? item.items : [];
+    const estimatedRoomCode = item?.estimatedRoomCode || '';
+    const estimatedLocationName = item?.estimatedLocationName || '';
+    const itemFloor = item?.floor || '';
+    const itemBuilding = item?.building || '';
+    const tags = Array.isArray(item?.tags) ? item.tags : [];
 
-  activeFilters.innerHTML = chips.length > 0 ? chips.join("") : '<span class="muted">目前未套用篩選條件</span>';
+    const keywordMatched =
+      !keyword ||
+      displayName.toLowerCase().includes(keyword) ||
+      shortName.toLowerCase().includes(keyword) ||
+      rawProducts.toLowerCase().includes(keyword) ||
+      items.some(i => String(i).toLowerCase().includes(keyword)) ||
+      estimatedRoomCode.toLowerCase().includes(keyword) ||
+      estimatedLocationName.toLowerCase().includes(keyword) ||
+      itemFloor.toLowerCase().includes(keyword) ||
+      itemBuilding.toLowerCase().includes(keyword) ||
+      (classKeyword && (
+        displayName === classKeyword.displayName ||
+        shortName === classKeyword.shortName
+      ));
+
+    const gradeMatched = !grade || item?.grade === grade;
+    const buildingMatched = !building || itemBuilding === building;
+    const floorMatched = !floor || itemFloor === floor;
+    const tagMatched = !activeTag || tags.includes(activeTag);
+
+    return keywordMatched && gradeMatched && buildingMatched && floorMatched && tagMatched;
+  });
 }
 
-function renderStalls(list) {
-  const app = document.getElementById("app");
-  const resultInfo = document.getElementById("resultInfo");
-  const keyword = document.getElementById("searchInput").value.trim();
+function renderStalls() {
+  if (!stallGrid || !resultCount) return;
 
-  resultInfo.textContent = "共 " + list.length + " 筆結果";
+  const filtered = filterStalls();
+  resultCount.textContent = `共 ${filtered.length} 筆`;
 
-  if (list.length === 0) {
-    app.innerHTML = '<div class="empty">查無符合資料，請調整篩選條件或按下「重置篩選」。</div>';
+  if (!filtered.length) {
+    stallGrid.innerHTML = `
+      <div class="empty" style="grid-column:1/-1;">
+        <div style="font-size:40px;">🔎</div>
+        <strong style="display:block; margin-top:8px; color:#4f473f;">查無符合條件的攤位</strong>
+        <div style="margin-top:6px;">試試看輸入 3-1、朝陽班、套圈圈、奶茶，或調整篩選條件。</div>
+      </div>
+    `;
     return;
   }
 
-  app.innerHTML = list.map(function(item) {
-    const grade = getGradeFromName(item.shortName);
-    const floorText = getFloorFromRoomCode(item.estimatedRoomCode, item.floor);
+  stallGrid.innerHTML = filtered.map(item => {
+    const tags = Array.isArray(item?.tags) ? item.tags : [];
+    const items = Array.isArray(item?.items) ? item.items : [];
 
-    const tags = (item.items || []).map(function(name) {
-      return '<span class="tag">' + highlightText(name, keyword) + '</span>';
-    }).join("");
+    return `
+      <article class="card">
+        <div class="card-top">
+          <div class="title-wrap">
+            <h4>${item?.displayName || ''}</h4>
+            <p>${item?.shortName || ''}｜${item?.estimatedRoomCode || ''}｜${item?.estimatedLocationName || ''}</p>
+          </div>
+        </div>
 
-    const locationText = [
-      item.building || "",
-      floorText || "",
-      item.estimatedRoomCode || "",
-      item.estimatedLocationName || ""
-    ].join(" ").trim();
+        <div class="meta-list">
+          <div class="meta-item">
+            <span>樓別</span>
+            <strong>${item?.building || ''}</strong>
+          </div>
+          <div class="meta-item">
+            <span>樓層</span>
+            <strong>${item?.floor || ''}</strong>
+          </div>
+          <div class="meta-item">
+            <span>教室代碼</span>
+            <strong>${item?.estimatedRoomCode || ''}</strong>
+          </div>
+          <div class="meta-item">
+            <span>位置名稱</span>
+            <strong>${item?.estimatedLocationName || ''}</strong>
+          </div>
+        </div>
 
-    return '<div class="card">'
-      + '<h3>' + highlightText(item.displayName, keyword) + '</h3>'
-      + '<div class="line"><strong>簡稱：</strong>' + highlightText(item.shortName, keyword) + '</div>'
-      + '<div class="line"><strong>年級：</strong>' + highlightText(grade, keyword) + '</div>'
-      + '<div class="line"><strong>位置：</strong>' + highlightText(locationText, keyword) + '</div>'
-      + '<div class="line"><strong>販售品項：</strong></div>'
-      + '<div class="tag-list">' + tags + '</div>'
-      + '</div>';
-  }).join("");
+        <div class="tags">
+          ${tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+        </div>
+
+        <div class="items">
+          <strong>販賣／活動品項</strong>
+          <ul>
+            ${items.map(i => `<li>${i}</li>`).join('')}
+          </ul>
+        </div>
+      </article>
+    `;
+  }).join('');
 }
 
-function renderEvents(events) {
-  const eventsBox = document.getElementById("events");
+function renderEvents() {
+  if (!eventGrid) return;
 
-  eventsBox.innerHTML = events.map(function(item) {
-    return '<div class="card">'
-      + '<h3>' + escapeHtml(item.venue) + '</h3>'
-      + '<div class="line"><strong>單位：</strong>' + escapeHtml(item.unit) + '</div>'
-      + '<div class="line"><strong>活動：</strong>' + escapeHtml(item.activityName) + '</div>'
-      + '<div class="line"><strong>時間：</strong>' + escapeHtml(item.startTime) + ' - ' + escapeHtml(item.endTime) + '</div>'
-      + '</div>';
-  }).join("");
-}
+  if (!Array.isArray(events) || !events.length) {
+    eventGrid.innerHTML = `
+      <div class="empty" style="grid-column:1/-1;">
+        <div style="font-size:36px;">📭</div>
+        <strong style="display:block; margin-top:8px; color:#4f473f;">目前沒有其他已佔用場地資料</strong>
+      </div>
+    `;
+    return;
+  }
 
-function applyFilters() {
-  const keyword = document.getElementById("searchInput").value.trim().toLowerCase();
-  const building = document.getElementById("buildingFilter").value;
-  const floor = document.getElementById("floorFilter").value;
-  const grade = document.getElementById("gradeFilter").value;
+  eventGrid.innerHTML = events.map(event => `
+    <article class="card">
+      <div class="card-top">
+        <div class="title-wrap">
+          <h4>${event?.venue || ''}</h4>
+          <p>${event?.unit || ''}</p>
+        </div>
+        <span class="pill pill-event">其他活動</span>
+      </div>
 
-  const filtered = allStalls.filter(function(item) {
-    const itemGrade = getGradeFromName(item.shortName);
-    const itemFloor = getFloorFromRoomCode(item.estimatedRoomCode, item.floor);
+      <div class="meta-list">
+        <div class="meta-item">
+          <span>開始時間</span>
+          <strong>${event?.startTime || ''}</strong>
+        </div>
+        <div class="meta-item">
+          <span>結束時間</span>
+          <strong>${event?.endTime || ''}</strong>
+        </div>
+        <div class="meta-item">
+          <span>類型</span>
+          <strong>${event?.type || ''}</strong>
+        </div>
+        <div class="meta-item">
+          <span>可能影響動線</span>
+          <strong>${event?.mayAffectRoute ? '是' : '否'}</strong>
+        </div>
+      </div>
 
-    const text = [
-      item.displayName,
-      item.shortName,
-      item.building,
-      itemFloor,
-      item.estimatedRoomCode,
-      item.estimatedLocationName
-    ].concat(item.items || []).join(" ").toLowerCase();
-
-    const matchKeyword = text.includes(keyword);
-    const matchBuilding = !building || item.building === building;
-    const matchFloor = !floor || itemFloor === floor;
-    const matchGrade = !grade || itemGrade === grade;
-
-    return matchKeyword && matchBuilding && matchFloor && matchGrade;
-  });
-
-  updateActiveFilters();
-  renderStalls(filtered);
+      <div class="items">
+        <strong>活動名稱</strong>
+        <ul>
+          <li>${event?.activityName || ''}</li>
+        </ul>
+      </div>
+    </article>
+  `).join('');
 }
 
 function resetFilters() {
-  document.getElementById("searchInput").value = "";
-  document.getElementById("buildingFilter").value = "";
-  document.getElementById("floorFilter").value = "";
-  document.getElementById("gradeFilter").value = "";
-  applyFilters();
+  if (searchInput) searchInput.value = '';
+  if (gradeFilter) gradeFilter.value = '';
+  if (buildingFilter) buildingFilter.value = '';
+  if (floorFilter) floorFilter.value = '';
+  activeTag = '';
+  renderTagChips();
+  renderStalls();
 }
 
-function bindFilters() {
-  document.getElementById("searchInput").addEventListener("input", applyFilters);
-  document.getElementById("buildingFilter").addEventListener("change", applyFilters);
-  document.getElementById("floorFilter").addEventListener("change", applyFilters);
-  document.getElementById("gradeFilter").addEventListener("change", applyFilters);
-  document.getElementById("resetFiltersBtn").addEventListener("click", resetFilters);
-}
+[searchInput, gradeFilter, buildingFilter, floorFilter].forEach(el => {
+  if (!el) return;
+  el.addEventListener('input', renderStalls);
+  el.addEventListener('change', renderStalls);
+});
 
-function setupFilters() {
-  const buildings = getUniqueValues(allStalls, function(item) {
-    return item.building || "";
-  });
-
-  const floors = getUniqueValues(allStalls, function(item) {
-    return getFloorFromRoomCode(item.estimatedRoomCode, item.floor);
-  });
-
-  const grades = getUniqueValues(allStalls, function(item) {
-    return getGradeFromName(item.shortName);
-  });
-
-  populateSelect("buildingFilter", buildings, "全部大樓");
-  populateSelect("floorFilter", floors, "全部樓層");
-  populateSelect("gradeFilter", grades, "全部年級");
-}
-
-async function loadData() {
-  const app = document.getElementById("app");
-  const eventsBox = document.getElementById("events");
-
-  try {
-    const stallsRes = await fetch("./data/stalls.json");
-    const eventsRes = await fetch("./data/events.json");
-
-    allStalls = await stallsRes.json();
-    const events = await eventsRes.json();
-
-    setupFilters();
-    renderStalls(allStalls);
-    renderEvents(events);
-    bindFilters();
-    updateActiveFilters();
-  } catch (error) {
-    app.innerHTML = '<div class="empty">資料載入失敗</div>';
-    eventsBox.innerHTML = '<div class="empty">資料載入失敗</div>';
-    console.error(error);
-  }
+if (resetBtn) {
+  resetBtn.addEventListener('click', resetFilters);
 }
 
 loadData();
