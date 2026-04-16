@@ -8,6 +8,8 @@ const resultCount = document.getElementById('resultCount');
 const currentFilters = document.getElementById('currentFilters');
 const eventGrid = document.getElementById('eventGrid');
 const resetBtn = document.getElementById('resetBtn');
+const backToTopBtn = document.getElementById('backToTopBtn');
+
 
 let stalls = [];
 let events = [];
@@ -339,3 +341,25 @@ if (resetBtn) {
 }
 
 loadData();
+function toggleBackToTopButton() {
+  if (!backToTopBtn) return;
+
+  if (window.scrollY > 300) {
+    backToTopBtn.classList.add('show');
+  } else {
+    backToTopBtn.classList.remove('show');
+  }
+}
+
+if (backToTopBtn) {
+  backToTopBtn.addEventListener('click', () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  });
+}
+
+window.addEventListener('scroll', toggleBackToTopButton);
+toggleBackToTopButton();
+
