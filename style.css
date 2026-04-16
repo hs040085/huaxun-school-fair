@@ -750,34 +750,28 @@ mark{
     font-size: 20px;
   }
 }
-/* 手機版首頁裝飾修正 */
+/* 手機版首頁裝飾修正：只保留主要內容，隱藏多餘裝飾 */
 .hero-visual{
   overflow: hidden;
 }
 
 @media (max-width: 640px){
-  .hero-cloud,
-  .cloud-a,
-  .cloud-b,
-  .cloud-c{
+  .hero-visual > *{
     display: none !important;
   }
 
-  .hero-visual::before,
-  .hero-visual::after{
-    display: none !important;
-  }
-
-  .hero-visual .decor,
-  .hero-visual .circle,
-  .hero-visual .bubble{
-    display: none !important;
-  }
-
-  .hero-mini-tags,
-  .hero-note,
-  .hero-school{
+  .hero-visual > .hero-school,
+  .hero-visual > .hero-note,
+  .hero-visual > .hero-mini-tags{
+    display: block !important;
     position: relative;
     z-index: 2;
+  }
+
+  .hero-mini-tags{
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
   }
 }
