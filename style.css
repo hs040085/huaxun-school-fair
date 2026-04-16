@@ -750,6 +750,7 @@ mark{
     font-size: 20px;
   }
 }
+/* 手機版首頁裝飾修正 */
 .hero-visual{
   overflow: hidden;
 }
@@ -767,6 +768,12 @@ mark{
     display: none !important;
   }
 
+  .hero-visual .decor,
+  .hero-visual .circle,
+  .hero-visual .bubble{
+    display: none !important;
+  }
+
   .hero-mini-tags,
   .hero-note,
   .hero-school{
@@ -774,5 +781,3 @@ mark{
     z-index: 2;
   }
 }
-
-  }
