@@ -8,7 +8,6 @@ const resultCount = document.getElementById('resultCount');
 const currentFilters = document.getElementById('currentFilters');
 const eventGrid = document.getElementById('eventGrid');
 const resetBtn = document.getElementById('resetBtn');
-const backToTopBtn = document.getElementById('backToTopBtn');
 
 
 let stalls = [];
@@ -341,25 +340,12 @@ if (resetBtn) {
 }
 
 loadData();
-function toggleBackToTopButton() {
-  if (!backToTopBtn) return;
+const backToTopButton = document.getElementById('backToTopBtn');
 
-  if (window.scrollY > 300) {
-    backToTopBtn.classList.add('show');
-  } else {
-    backToTopBtn.classList.remove('show');
-  }
+if (backToTopButton) {
+  backToTopButton.onclick = function () {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  };
 }
-
-if (backToTopBtn) {
-  backToTopBtn.addEventListener('click', () => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
-  });
-}
-
-window.addEventListener('scroll', toggleBackToTopButton);
-toggleBackToTopButton();
-
