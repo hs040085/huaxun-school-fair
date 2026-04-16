@@ -1,0 +1,71 @@
+﻿<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>華勛國小親職教育日｜班級攤位查詢</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="hero__badge">親職教育日 × 校園園遊會</div>
+      <h1>華勛國小班級攤位查詢</h1>
+      <p class="hero__desc">快速搜尋班級位置、販售品項，以及校內其他活動資訊。</p>
+    </header>
+
+    <main class="layout">
+      <section class="panel">
+        <div class="panel__head">
+          <div>
+            <h2>班級攤位查詢</h2>
+            <p class="muted">可搜尋班級、教室、品項關鍵字，也可搭配篩選器縮小範圍</p>
+          </div>
+        </div>
+
+        <div class="filters">
+          <div class="field">
+            <label for="searchInput" class="label">搜尋關鍵字</label>
+            <input id="searchInput" type="text" placeholder="例如：3-1、朝陽班、棉花糖、泰式奶茶">
+          </div>
+
+          <div class="field">
+            <label for="buildingFilter" class="label">大樓</label>
+            <select id="buildingFilter"></select>
+          </div>
+
+          <div class="field">
+            <label for="floorFilter" class="label">樓層</label>
+            <select id="floorFilter"></select>
+          </div>
+
+          <div class="field">
+            <label for="gradeFilter" class="label">年級</label>
+            <select id="gradeFilter"></select>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <button id="resetFiltersBtn" type="button" class="btn-secondary">重置篩選</button>
+          <div id="activeFilters" class="active-filters"></div>
+        </div>
+
+        <div id="resultInfo" class="result-info"></div>
+        <div id="app" class="card-list"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel__head">
+          <div>
+            <h2>其他活動</h2>
+            <p class="muted">同時參考校內其他場地安排</p>
+          </div>
+        </div>
+        <div id="events" class="card-list"></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="./script.js"></script>
+</body>
+</html>
