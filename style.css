@@ -750,27 +750,19 @@ mark{
     font-size: 20px;
   }
 }
-/* 手機版首頁裝飾修正：hero 視覺區只保留三個主元素 */
 .hero-visual{
   overflow: hidden;
 }
 
 @media (max-width: 640px){
-  .hero-visual *{
+  .hero-visual > *{
     display: none !important;
   }
 
-  .hero-visual .hero-school,
-  .hero-visual .hero-note,
-  .hero-visual .hero-mini-tags,
-  .hero-visual .hero-note *,
-  .hero-visual .hero-mini-tags *{
-    display: revert !important;
-  }
-
-  .hero-visual .hero-school,
-  .hero-visual .hero-note,
-  .hero-visual .hero-mini-tags{
+  .hero-visual > .hero-school,
+  .hero-visual > .hero-note,
+  .hero-visual > .hero-mini-tags{
+    display: block !important;
     position: relative;
     z-index: 2;
   }
@@ -782,3 +774,4 @@ mark{
     justify-content: center;
   }
 }
+
