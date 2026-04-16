@@ -5,6 +5,7 @@ const floorFilter = document.getElementById('floorFilter');
 const tagChips = document.getElementById('tagChips');
 const stallGrid = document.getElementById('stallGrid');
 const resultCount = document.getElementById('resultCount');
+const currentFilters = document.getElementById('currentFilters');
 const eventGrid = document.getElementById('eventGrid');
 const resetBtn = document.getElementById('resetBtn');
 
@@ -52,6 +53,10 @@ async function loadData() {
 
     if (resultCount) {
       resultCount.textContent = '資料載入失敗';
+    }
+
+    if (currentFilters) {
+      currentFilters.textContent = '請檢查 stalls.json / events.json';
     }
 
     if (eventGrid) {
@@ -181,11 +186,36 @@ function filterStalls() {
   });
 }
 
+function updateCurrentFilters(filteredCount) {
+  if (!currentFilters) return;
+
+  const parts = [];
+
+  const keyword = searchInput?.value?.trim() || '';
+  const grade = gradeFilter?.value || '';
+  const building = buildingFilter?.value || '';
+  const floor = floorFilter?.value || '';
+
+  if (keyword) parts.push(`關鍵字：${keyword}`);
+  if (grade) parts.push(`年級：${grade}`);
+  if (building) parts.push(`樓別：${building}`);
+  if (floor) parts.push(`樓層：${floor}`);
+  if (activeTag) parts.push(`類型：${activeTag}`);
+
+  if (!parts.length) {
+    currentFilters.textContent = `目前條件：全部（共 ${filteredCount} 筆）`;
+    return;
+  }
+
+  currentFilters.textContent = `目前條件：${parts.join('／')}（共 ${filteredCount} 筆）`;
+}
+
 function renderStalls() {
   if (!stallGrid || !resultCount) return;
 
   const filtered = filterStalls();
   resultCount.textContent = `共 ${filtered.length} 筆`;
+  updateCurrentFilters(filtered.length);
 
   if (!filtered.length) {
     stallGrid.innerHTML = `
