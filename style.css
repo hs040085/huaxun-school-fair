@@ -712,36 +712,43 @@ mark{
 
   .btn{
     padding: 10px 16px;
-  }
- .back-to-top{
-  position: fixed;
-  right: 16px;
-  bottom: 18px;
+    .back-to-top{
+  position: fixed !important;
+  right: 16px !important;
+  left: auto !important;
+  bottom: 18px !important;
+  top: auto !important;
   width: 52px;
   height: 52px;
   border: none;
-  border-radius: 999px;
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-  color: #fff;
+  border-radius: 9999px;
+  background: #e8688f;
+  color: #ffffff;
   font-size: 24px;
   font-weight: 800;
+  line-height: 1;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   box-shadow: 0 12px 24px rgba(232, 104, 143, 0.28);
-  z-index: 9999;
+  z-index: 99999 !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 .back-to-top:hover{
-  transform: translateY(-2px);
+  opacity: 0.92;
 }
 
 @media (max-width: 640px){
   .back-to-top{
-    right: 12px;
-    bottom: 14px;
+    right: 12px !important;
+    bottom: 14px !important;
     width: 46px;
     height: 46px;
     font-size: 20px;
   }
 }
 
-}
+  }
