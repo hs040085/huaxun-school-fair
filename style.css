@@ -205,6 +205,7 @@ select{
  position: absolute;
  border-radius: 999px;
  opacity: 0.95;
+ z-index: 1; /* 設定較低的圖層 */
 }
 
 .cloud-a{
@@ -229,12 +230,15 @@ select{
  background: #dff4ef;
  left: 22px;
  bottom: 24px;
+ z-index: 0; /* 強制讓這顆綠色的更靠後 */
 }
 
 .hero-school{
  text-align: center;
  font-size: 58px;
  margin-top: 16px;
+ position: relative;
+ z-index: 2;
 }
 
 .hero-note{
@@ -246,6 +250,8 @@ select{
  padding: 14px;
  text-align: center;
  box-shadow: 0 10px 22px rgba(0,0,0,0.05);
+ position: relative;
+ z-index: 5;
 }
 
 .hero-note strong{
@@ -269,7 +275,7 @@ select{
  flex-wrap: wrap;
  gap: 8px;
  position: relative;
- z-index: 10;
+ z-index: 20; /* 設為最高層級 */
 }
 
 .hero-mini-tags span{
@@ -283,7 +289,7 @@ select{
  background: #fff;
  border: 1px solid var(--line);
  position: relative;
- z-index: 10;
+ z-index: 21; /* 標籤文字本身也要在最上面 */
 }
 
 .section{
