@@ -61,7 +61,7 @@ function getRoomCoordinates(roomCode) {
 
   // --- 星空樓 (B - 左直列) ---
   if (b === 'B') {
-    const xMap = { 1: 35.5, 2: 29.2, 3: 22.9, 4: 16.6, 5: 10.3 };
+    const xMap = { 1: 34.0, 2: 27.7, 3: 22.9, 4: 16.6, 5: 10.3 };
     return { x: xMap[f] || 20, y: 26.5, w: 6.3, h: 40.0 };
   }
 
@@ -125,11 +125,11 @@ const DEFAULT_STALLS_DATA = [
  * 預設活動資料 (備援方案)
  */
 const DEFAULT_EVENTS_DATA = [
-  { "id": "event-001", "unit": "學務處、輔導室", "venue": "英語情境教室", "activityName": "健康促進學校有獎徵答活動、「心手相連」親子闖關體驗活動", "startTime": "10:00", "endTime": "11:00" },
+  { "id": "event-001", "unit": "學務處、輔導室", "venue": "英語情境教室", "activityName": "健康促進學校有獎徵答活動、「心手相連」親子闖關體驗活動", "startTime": "10:00", "endTime": "11:00", "roomCode": "B102" },
   { "id": "event-002", "unit": "教務處", "venue": "C401", "activityName": "Nga'ay ho! 太陽的部落（阿美族）", "startTime": "09:30", "endTime": "11:30" },
   { "id": "event-003", "unit": "教務處", "venue": "B404", "activityName": "台語大賣場（閩語）", "startTime": "09:30", "endTime": "11:30" },
   { "id": "event-004", "unit": "教務處", "venue": "C403", "activityName": "客家米食文化闖關（客語）", "startTime": "09:30", "endTime": "11:30" },
-  { "id": "event-005", "unit": "元智", "venue": "星空樓川堂", "activityName": "國際暨本土多元文化闖關體驗活動（含元智國際文化、印尼、泰國文化體驗及 SEL 親子抓寶）", "startTime": "09:30", "endTime": "11:30" }
+  { "id": "event-005", "unit": "元智", "venue": "星空樓川堂", "activityName": "國際暨本土多元文化闖關體驗活動（含元智國際文化、印尼、泰國文化體驗及 SEL 親子抓寶）", "startTime": "09:30", "endTime": "11:30", "roomCode": "C101" }
 ];
 
 async function loadData() {
@@ -232,7 +232,7 @@ function renderAll() {
   renderEvents();
 }
 
-function highlightOnMap(roomCode, shortName) {
+function highlightOnMap(roomCode, shortName, shouldScroll = true) {
   if (!mapMarker || !roomCode) return;
   const coord = getRoomCoordinates(roomCode);
   if (!coord) { mapMarker.style.display = 'none'; return; }
@@ -249,7 +249,9 @@ function highlightOnMap(roomCode, shortName) {
   if (markerText) markerText.textContent = (roomCode.startsWith('C')) ? `${bName} C 棟` : `${bName} ${fName}`;
   if (mapHint) mapHint.innerHTML = `已定位 <strong>${shortName}</strong> (${roomCode})`;
   
-  document.getElementById('map-section').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  if (shouldScroll) {
+    document.getElementById('map-section').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
 }
 
 function renderStalls() {
@@ -276,11 +278,23 @@ function renderStalls() {
   
   if (filtered.length === 0) {
     stallGrid.innerHTML = '<div class="empty">找不到符合條件的攤位 🔍</div>';
+    if (mapMarker) mapMarker.style.display = 'none';
     return;
   }
 
+  // 1. 自動標註搜尋結果的第一筆（但不捲動地圖）
+  const keyword = (searchInput?.value || '').trim();
+  if (keyword.length > 0 || gradeFilter.value || buildingFilter.value || floorFilter.value || activeTag) {
+    highlightOnMap(filtered[0].estimatedRoomCode, filtered[0].displayName, false);
+    
+    // 2. 只有在輸入關鍵字時，自動捲動到列表第一筆資料位置
+    if (keyword.length > 0) {
+      document.getElementById('stalls').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
   stallGrid.innerHTML = filtered.map(item => `
-    <article class="card ${item.hasStall ? '' : 'no-stall'}" onclick="highlightOnMap('${item.estimatedRoomCode}', '${item.displayName}')" style="cursor:pointer; border-style: ${item.hasStall ? 'solid' : 'dashed'};">
+    <article class="card ${item.hasStall ? '' : 'no-stall'}" onclick="highlightOnMap('${item.estimatedRoomCode}', '${item.displayName}', true)" style="cursor:pointer; border-style: ${item.hasStall ? 'solid' : 'dashed'};">
       <div class="card-top">
         <div class="title-wrap">
           <h4>${item.displayName}</h4>
@@ -310,17 +324,18 @@ function renderStalls() {
       </div>
     </article>
   `).join('');
-
-  if (filtered.length === 1) {
-    setTimeout(() => highlightOnMap(filtered[0].estimatedRoomCode, filtered[0].displayName), 200);
-  }
 }
 
 function renderEvents() {
   if (!eventGrid || !events.length) return;
   eventGrid.innerHTML = events.map(event => {
-    const canLocate = event.venue.match(/[A-D][1-5][0-9]{2}/);
-    const roomCode = canLocate ? canLocate[0] : null;
+    // 優先使用資料指定的 roomCode，若無則從場地名稱中自動偵測
+    let roomCode = event.roomCode || null;
+    if (!roomCode) {
+      const canLocate = event.venue.match(/[A-D][1-5][0-9]{2}/);
+      roomCode = canLocate ? canLocate[0] : null;
+    }
+
     return `
       <article class="card card-event" ${roomCode ? `onclick="highlightOnMap('${roomCode}', '${event.venue}')" style="cursor:pointer;"` : ''}>
         <div class="card-top">
