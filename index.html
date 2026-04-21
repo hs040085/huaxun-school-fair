@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+ <meta charset="UTF-8" />
+ <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+ <title>華勛國小親職教育日｜班級攤位查詢</title>
+ <link rel="stylesheet" href="./style.css?v=1.1" />
+</head>
+<body>
+ <header class="topbar">
+ <div class="wrap topbar-inner">
+ <div class="brand">
+ <div class="brand-badge">🎈</div>
+ <div class="brand-text">
+ <h1>華勛國小親職教育日</h1>
+ <p>班級攤位查詢網站</p>
+ </div>
+ </div>
+ <a class="btn btn-soft" href="#stalls">開始查詢</a>
+ </div>
+ </header>
+
+ <main class="wrap">
+ <section class="hero">
+ <div class="hero-card">
+ <div class="hero-grid">
+ <div class="hero-copy">
+ <div class="eyebrow">🌷 親子活動查詢・地圖自動定位</div>
+ <h2>快速找到<br>班級攤位與活動位置</h2>
+ <p>
+ 直接搜尋班級或品項，系統會自動在下方地圖標註位置。
+ 例如輸入 3-1、5-8、奶茶、套圈圈。
+ </p>
+ <div class="hero-actions">
+ <a class="btn btn-primary" href="#stalls">查看班級攤位</a>
+ <a class="btn btn-soft" href="#events">查看其他活動</a>
+ <a class="btn btn-soft" href="#map-section">查看校園地圖</a>
+ </div>
+ </div>
+
+ <div class="hero-visual" aria-hidden="true">
+ <div class="hero-cloud cloud-a"></div>
+ <div class="hero-cloud cloud-b"></div>
+ <div class="hero-cloud cloud-c"></div>
+ <div class="hero-school">🏫✨</div>
+ <div class="hero-note">
+ <strong>地圖新功能</strong>
+ <span>點擊搜尋結果，即可查看地圖位置</span>
+ </div>
+ </div>
+ </div>
+ </div>
+ </section>
+
+ <section class="section" id="stalls">
+ <div class="section-title">
+ <div>
+ <h3>班級攤位查詢</h3>
+ <p>可依班級、品項、類型、樓別、樓層查詢</p>
+ </div>
+ </div>
+
+ <div class="controls">
+ <div class="controls-grid">
+ <div class="field field-reset">
+ <label>&nbsp;</label>
+ <button class="btn btn-soft btn-full" id="resetBtn" type="button">清除篩選</button>
+ <div class="hint">第二次搜尋時，記得按「清除篩選」，避免被前一次的內容卡住喔。</div>
+ </div>
+
+ <div class="field field-search">
+ <label for="searchInput">搜尋班級或品項關鍵字</label>
+ <input id="searchInput" type="text" placeholder="例如：3-1、4-6、奶茶、套圈圈" />
+ </div>
+
+ <div class="field">
+ <label for="gradeFilter">年級</label>
+ <select id="gradeFilter">
+ <option value="">全部年級</option>
+ </select>
+ </div>
+
+ <div class="field">
+ <label for="buildingFilter">樓別</label>
+ <select id="buildingFilter">
+ <option value="">全部樓別</option>
+ </select>
+ </div>
+
+ <div class="field">
+ <label for="floorFilter">樓層</label>
+ <select id="floorFilter">
+ <option value="">全部樓層</option>
+ </select> </div>
+ </div>
+
+ <div class="chips-row">
+ <div class="chips" id="tagChips"></div>
+ </div>
+ </div>
+
+ <div class="summary-bar">
+ <div class="summary-count" id="resultCount">載入中...</div>
+ <div class="summary-meta" id="currentFilters">可查詢班級攤位與其他活動場地</div>
+ </div>
+
+ <div class="grid" id="stallGrid"></div>
+ </section>
+
+ <!-- 地圖顯示區塊 -->
+ <section class="section" id="map-section">
+ <div class="section-title">
+ <div>
+ <h3>校園平面位置圖</h3>
+ <p id="map-hint">搜尋班級後，此處將自動標註位置</p>
+ </div>
+ </div>
+ <div class="map-view-box">
+ <div class="map-container">
+ <img src="./campus-map.jpg" alt="華勛國小平面圖" id="main-map">
+ <!-- 新增：中間裝飾元素 -->
+ <div class="map-overlay-dots"></div>
+ <div class="map-decor decor-cloud-1">☁️</div>
+ <div class="map-decor decor-cloud-2">☁️</div>
+ <div class="map-decor decor-balloon">🎈</div>
+ <div class="map-decor decor-sparkle">✨</div>
+ <div id="map-marker" class="map-marker">
+ <div class="marker-pulse"></div>
+ <div class="marker-label" id="marker-text"></div>
+ </div>
+ </div>
+ </div>
+ </section>
+
+ <section class="section" id="events">
+ <div class="section-title">
+ <div>
+ <h3>其他場地活動</h3>
+ <p>與班級攤位分開呈現</p>
+ </div>
+ </div>
+ <div class="events-grid" id="eventGrid"></div>
+ </section>
+ </main>
+
+ <button id="backToTopBtn" class="back-to-top" type="button" aria-label="回到最上方">↑</button>
+
+ <script src="./script.js?v=1.1"></script>
+</body>
+</html>
