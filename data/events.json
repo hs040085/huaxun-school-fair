@@ -3,11 +3,9 @@
     "id": "event-001",
     "unit": "學務處、輔導室",
     "venue": "英語情境教室",
-    "activityName": "健康促進學校有獎徵答活動、心手相連親子闖關體驗活動",
+    "activityName": "健康促進學校有獎徵答活動、「心手相連」親子闖關體驗活動",
     "startTime": "10:00",
-    "endTime": "11:00",
-    "type": "其他活動／非班級攤位",
-    "mayAffectRoute": true
+    "endTime": "11:00"
   },
   {
     "id": "event-002",
@@ -15,9 +13,7 @@
     "venue": "C401",
     "activityName": "Nga'ay ho! 太陽的部落（阿美族）",
     "startTime": "09:30",
-    "endTime": "11:30",
-    "type": "其他活動／非班級攤位",
-    "mayAffectRoute": true
+    "endTime": "11:30"
   },
   {
     "id": "event-003",
@@ -25,9 +21,7 @@
     "venue": "B404",
     "activityName": "台語大賣場（閩語）",
     "startTime": "09:30",
-    "endTime": "11:30",
-    "type": "其他活動／非班級攤位",
-    "mayAffectRoute": true
+    "endTime": "11:30"
   },
   {
     "id": "event-004",
@@ -35,18 +29,14 @@
     "venue": "C403",
     "activityName": "客家米食文化闖關（客語）",
     "startTime": "09:30",
-    "endTime": "11:30",
-    "type": "其他活動／非班級攤位",
-    "mayAffectRoute": true
+    "endTime": "11:30"
   },
   {
     "id": "event-005",
     "unit": "元智",
     "venue": "星空樓川堂",
-    "activityName": "元智國際文化體驗活動、印尼、泰國文化體驗、SEL親子來抓寶",
+    "activityName": "國際暨本土多元文化闖關體驗活動（含元智國際文化、印尼、泰國文化體驗及 SEL 親子抓寶）",
     "startTime": "09:30",
-    "endTime": "11:30",
-    "type": "其他活動／非班級攤位",
-    "mayAffectRoute": true
+    "endTime": "11:30"
   }
 ]

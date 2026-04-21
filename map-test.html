@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>地圖座標測試與擷取工具</title>
+  <style>
+    body { 
+      font-family: "Noto Sans TC", "PingFang TC", sans-serif; 
+      padding: 20px; 
+      background: #f4f6f8; 
+      margin: 0;
+    }
+    .container { 
+      display: flex; 
+      gap: 24px; 
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    .panel { 
+      background: white; 
+      padding: 24px; 
+      border-radius: 12px; 
+      width: 320px; 
+      flex-shrink: 0;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08); 
+      height: fit-content;
+      position: sticky;
+      top: 20px;
+    }
+    .map-container { 
+      position: relative; 
+      display: inline-block; 
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1); 
+      background: white; 
+      border: 4px solid #fff;
+      border-radius: 8px;
+    }
+    .map-container img { 
+      max-width: 1000px; 
+      display: block; 
+      cursor: crosshair;
+    }
+    .highlight {
+      position: absolute;
+      border: 3px solid #ff3b3b;
+      background: rgba(255, 59, 59, 0.35);
+      box-shadow: 0 0 12px rgba(255,0,0,0.4);
+      border-radius: 4px;
+      pointer-events: none; /* 讓滑鼠點擊可以穿透方框 */
+      display: none;
+      transition: all 0.25s ease-out;
+      z-index: 10;
+    }
+    .label-badge {
+      position: absolute;
+      top: -24px;
+      left: -3px;
+      background: #ff3b3b;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+    h2 { margin-top: 0; color: #333; }
+    h3 { font-size: 16px; color: #555; border-bottom: 2px solid #eee; padding-bottom: 8px; }
+    input, button { 
+      padding: 10px; 
+      width: 100%; 
+      box-sizing: border-box; 
+      margin-bottom: 12px; 
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+    button {
+      background: #2e63c8;
+      color: white;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover { background: #2451a8; }
+    .info-box {
+      background: #e9f2ff;
+      border-left: 4px solid #2e63c8;
+      padding: 12px;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #333;
+      margin-bottom: 20px;
+    }
+    pre { 
+      background: #282c34; 
+      color: #abb2bf; 
+      padding: 12px; 
+      border-radius: 6px; 
+      overflow: auto; 
+      height: 350px; 
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    .btn-copy { background: #4caf50; margin-top: 8px; }
+    .btn-copy:hover { background: #43a047; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="panel">
+      <h2>地圖高亮測試工具</h2>
+      
+      <h3>1. 測試座標</h3>
+      <input type="text" id="search" placeholder="輸入班級 (例: 3-1, 3-2)" />
+      <button onclick="testHighlight()">查看位置</button>
+      
+      <h3>2. 建立新座標</h3>
+      <div class="info-box" id="clickInfo">
+        <strong>操作步驟：</strong><br>
+        1. 在右側地圖點擊某個教室的「左上角」。<br>
+        2. 接著點擊該教室的「右下角」。<br>
+        3. 輸入班級名稱即可產生座標。
+      </div>
+      
+      <h3>3. 匯出座標資料</h3>
+      <pre id="jsonOutput"></pre>
+      <button class="btn-copy" onclick="copyJson()">複製 JSON</button>
+    </div>
+    
+    <div class="map-container" id="mapWrap">
+      <!-- 這裡直接讀取專案目錄中的圖檔 -->
+      <img src="campus-map.jpg" id="mapImg" alt="平面圖" />
+      <div class="highlight" id="hlBox">
+        <div class="label-badge" id="hlLabel">3-1</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 我先為您預設了 3-1 與 3-2 的大約座標，您可以直接測試
+    const mapData = {
+      "3-1": { "x": 23.33, "y": 77.01, "w": 6.81, "h": 3.73 },
+      "3-2": { "x": 30.14, "y": 77.01, "w": 6.81, "h": 3.73 }
+    };
+
+    const hlBox = document.getElementById('hlBox');
+    const hlLabel = document.getElementById('hlLabel');
+    const searchInput = document.getElementById('search');
+    const mapImg = document.getElementById('mapImg');
+    const clickInfo = document.getElementById('clickInfo');
+    const jsonOutput = document.getElementById('jsonOutput');
+
+    // 處理圖片路徑 (萬一檔名不同時的相容)
+    mapImg.onerror = function() {
+      mapImg.src = "../華勛國小教室分配平面圖-1141.jpg";
+    };
+
+    function updateJson() {
+      jsonOutput.textContent = JSON.stringify(mapData, null, 2);
+    }
+    updateJson();
+
+    function testHighlight() {
+      const key = searchInput.value.trim();
+      const rect = mapData[key];
+      if (rect) {
+        hlBox.style.display = 'block';
+        hlBox.style.left = rect.x + '%';
+        hlBox.style.top = rect.y + '%';
+        hlBox.style.width = rect.w + '%';
+        hlBox.style.height = rect.h + '%';
+        hlLabel.textContent = key;
+      } else {
+        alert(`找不到「${key}」的座標！\n請直接在地圖上點擊該教室的【左上角】與【右下角】來框出範圍。`);
+        hlBox.style.display = 'none';
+      }
+    }
+
+    // 讓輸入框按下 Enter 也可以搜尋
+    searchInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') testHighlight();
+    });
+
+    let clickStep = 0;
+    let tempX, tempY;
+
+    mapImg.addEventListener('click', (e) => {
+      // 計算滑鼠點擊位置佔圖片寬高的百分比 (這樣不管螢幕多大都準確)
+      const rect = mapImg.getBoundingClientRect();
+      const px = ((e.clientX - rect.left) / rect.width) * 100;
+      const py = ((e.clientY - rect.top) / rect.height) * 100;
+
+      if (clickStep === 0) {
+        // 第一點：左上角
+        tempX = px;
+        tempY = py;
+        clickInfo.innerHTML = `<strong>已記錄左上角！</strong><br>現在請點擊教室的「右下角」。`;
+        clickStep = 1;
+        
+        // 暫時顯示一個起始點
+        hlBox.style.display = 'block';
+        hlBox.style.left = tempX + '%';
+        hlBox.style.top = tempY + '%';
+        hlBox.style.width = '0%';
+        hlBox.style.height = '0%';
+        hlLabel.textContent = '選取中...';
+      } else {
+        // 第二點：右下角
+        const w = px - tempX;
+        const h = py - tempY;
+        
+        if (w <= 0 || h <= 0) {
+          clickInfo.innerHTML = '<strong style="color:red;">錯誤：右下角必須在左上角的右下方！</strong><br>請重新點擊左上角。';
+          clickStep = 0;
+          return;
+        }
+
+        const className = prompt('請輸入這個範圍的班級名稱 (例如: 3-3 或 4-1):');
+        if (className) {
+          mapData[className] = {
+            x: parseFloat(tempX.toFixed(2)),
+            y: parseFloat(tempY.toFixed(2)),
+            w: parseFloat(w.toFixed(2)),
+            h: parseFloat(h.toFixed(2))
+          };
+          updateJson();
+          searchInput.value = className;
+          testHighlight();
+          clickInfo.innerHTML = `<strong>成功建立 ${className}！</strong><br>您可以繼續點擊下一個教室的左上角。`;
+        } else {
+          clickInfo.innerHTML = '<strong>已取消。</strong><br>請重新點擊左上角開始。';
+          hlBox.style.display = 'none';
+        }
+        clickStep = 0;
+      }
+    });
+
+    function copyJson() {
+      navigator.clipboard.writeText(jsonOutput.textContent).then(() => {
+        alert('已複製 JSON！稍後您可以把這些資料貼給我，我會把它們整合進正式網站中。');
+      });
+    }
+  </script>
+</body>
+</html>

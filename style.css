@@ -629,6 +629,141 @@ mark{
  border-radius: 4px;
 }
 
+/* 地圖顯示區塊樣式 */
+.map-view-box {
+  background: linear-gradient(135deg, #ffffff 0%, #fff9fb 100%);
+  border: 2px solid var(--primary-soft);
+  border-radius: 34px;
+  padding: 22px;
+  box-shadow: var(--shadow);
+  margin-top: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 在地圖盒子四角加上可愛小裝飾 */
+.map-view-box::before {
+  content: "✨";
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  font-size: 20px;
+  opacity: 0.6;
+}
+
+.map-container {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.map-container img {
+  width: 100%;
+  height: auto;
+  border-radius: 20px;
+  display: block;
+  /* 可愛風濾鏡：提升亮度、飽和度，微調色調 */
+  filter: contrast(1.08) brightness(1.05) saturate(1.3) sepia(0.02);
+  box-shadow: 0 10px 30px rgba(106, 72, 45, 0.08);
+  position: relative;
+  z-index: 1;
+}
+
+/* 地圖點點網格層 */
+.map-overlay-dots {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(var(--primary-dark) 0.6px, transparent 0.6px);
+  background-size: 24px 24px;
+  opacity: 0.08;
+  border-radius: 20px;
+  z-index: 2;
+}
+
+/* 浮動裝飾元素通用樣式 */
+.map-decor {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+  font-size: 28px;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));
+  animation: map-float 4s ease-in-out infinite;
+}
+
+@keyframes map-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(5deg); }
+}
+
+.decor-cloud-1 { top: 5%; left: 5%; animation-delay: 0s; }
+.decor-cloud-2 { top: 12%; right: 10%; animation-delay: 1.5s; font-size: 24px; }
+.decor-balloon { bottom: 8%; right: 5%; animation-duration: 5s; }
+.decor-sparkle { bottom: 20%; left: 15%; font-size: 20px; opacity: 0.7; }
+
+.map-marker {
+  position: absolute;
+  width: 6.8%;
+  height: 3.7%;
+  border: 4px solid #ff6b81; /* 可愛柔和紅 */
+  background: rgba(255, 107, 129, 0.15);
+  border-radius: 10px; /* 更圓潤 */
+  display: none;
+  transform: translate(-0%, -0%);
+  pointer-events: none;
+  z-index: 10;
+  box-shadow: 0 0 20px rgba(255, 107, 129, 0.4), inset 0 0 10px rgba(255, 107, 129, 0.2);
+}
+
+.marker-pulse {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  right: -6px;
+  bottom: -6px;
+  border: 3px solid #ff6b81;
+  border-radius: 12px;
+  opacity: 0;
+  animation: marker-pulse-anim 2s infinite;
+}
+
+@keyframes marker-pulse-anim {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(1.15); opacity: 0; }
+}
+
+.marker-label {
+  position: absolute;
+  top: -38px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #ff6b81;
+  color: white;
+  padding: 5px 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 800;
+  white-space: nowrap;
+  box-shadow: 0 6px 15px rgba(255, 107, 129, 0.3);
+}
+
+.marker-label::after {
+  content: "";
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid #ff3b3b;
+}
+
+.card.highlighted {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+  transform: translateY(-4px);
+}
+
 @media (max-width: 980px){
  .hero-grid,
  .two-col,
