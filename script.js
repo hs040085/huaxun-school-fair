@@ -17,51 +17,20 @@ let activeTag = '';
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1C3Nxm5wBejO3-snx2KgbranXoaLPiHFmWvrb9Sf_CAs/gviz/tq?tqx=out:csv';
 
 /**
- * 樓層與位置對應表 (Map)
- * 規則說明：
- * A: 書香樓, B: 星空樓, C: 樂動樓
- * 數字第1碼為樓層 (例: B502 為星空樓5樓)
+ * 班級與教室代碼對應表 (Room Code Map)
+ * 根據華勛國小教室分配平面圖-1141 整理
  */
-const CLASS_LOCATION_MAP = {
-  "3-1": { "building": "書香樓", "floor": "三樓", "room": "A309" },
-  "3-2": { "building": "書香樓", "floor": "三樓", "room": "A308" },
-  "3-3": { "building": "書香樓", "floor": "三樓", "room": "A307" },
-  "3-4": { "building": "書香樓", "floor": "三樓", "room": "A306" },
-  "3-5": { "building": "書香樓", "floor": "三樓", "room": "A305" },
-  "3-6": { "building": "書香樓", "floor": "三樓", "room": "A304" },
-  "3-7": { "building": "書香樓", "floor": "三樓", "room": "A303" },
-  "3-8": { "building": "書香樓", "floor": "四樓", "room": "A403" },
-  "4-1": { "building": "書香樓", "floor": "四樓", "room": "A404" },
-  "4-2": { "building": "書香樓", "floor": "四樓", "room": "A405" },
-  "4-3": { "building": "書香樓", "floor": "四樓", "room": "A406" },
-  "4-4": { "building": "書香樓", "floor": "四樓", "room": "A407" },
-  "4-5": { "building": "書香樓", "floor": "四樓", "room": "A408" },
-  "4-6": { "building": "書香樓", "floor": "四樓", "room": "A409" },
-  "4-7": { "building": "星空樓", "floor": "四樓", "room": "B401" }, // 修正：B401 為四樓
-  "4-8": { "building": "星空樓", "floor": "四樓", "room": "B402" }, // 修正：B402 為四樓
-  "5-1": { "building": "星空樓", "floor": "四樓", "room": "B403" }, // 修正：B403 為四樓
-  "5-2": { "building": "星空樓", "floor": "四樓", "room": "B408" }, // 修正：B408 為四樓
-  "5-3": { "building": "星空樓", "floor": "四樓", "room": "B409" }, // 修正：B409 為四樓
-  "5-4": { "building": "星空樓", "floor": "四樓", "room": "B410" }, // 修正：B410 為四樓
-  "5-5": { "building": "星空樓", "floor": "五樓", "room": "B510" },
-  "5-6": { "building": "星空樓", "floor": "五樓", "room": "B509" }, // 修正：B509 為五樓
-  "5-7": { "building": "星空樓", "floor": "五樓", "room": "B508" }, // 修正：B508 為五樓
-  "5-8": { "building": "星空樓", "floor": "五樓", "room": "B503" }, // 修正：B503 為五樓
-  "5-9": { "building": "星空樓", "floor": "五樓", "room": "B502" }, // 修正：B502 為五樓
-  "6-1": { "building": "星空樓", "floor": "五樓", "room": "B501" }, // 修正：B501 為五樓
-  "6-2": { "building": "書香樓", "floor": "五樓", "room": "A509" },
-  "6-3": { "building": "星空樓", "floor": "一樓", "room": "B102" },
-  "6-4": { "building": "書香樓", "floor": "五樓", "room": "A508" },
-  "6-5": { "building": "書香樓", "floor": "五樓", "room": "A507" },
-  "6-6": { "building": "書香樓", "floor": "五樓", "room": "A506" },
-  "6-7": { "building": "書香樓", "floor": "五樓", "room": "A505" },
-  "6-8": { "building": "書香樓", "floor": "五樓", "room": "A504" },
-  "6-9": { "building": "書香樓", "floor": "五樓", "room": "A503" },
-  "朝陽": { "building": "星空樓", "floor": "二樓", "room": "B202" }
+const CLASS_ROOM_MAP = {
+  "3-1": "A309", "3-2": "A308", "3-3": "A307", "3-4": "A306", "3-5": "A305", "3-6": "A304", "3-7": "A303", "3-8": "A403",
+  "4-1": "A404", "4-2": "A405", "4-3": "A406", "4-4": "A407", "4-5": "A408", "4-6": "A409", "4-7": "B401", "4-8": "B402",
+  "5-1": "B403", "5-2": "B408", "5-3": "B409", "5-4": "B410", "5-5": "B510", "5-6": "B509", "5-7": "B508", "5-8": "B503", "5-9": "B502",
+  "6-1": "B501", "6-2": "A509", "6-3": "B102", "6-4": "A508", "6-5": "A507", "6-6": "A506", "6-7": "A505", "6-8": "A504", "6-9": "A503",
+  "朝陽": "B202"
 };
 
-// 樓層數字轉文字輔助 (例: 1 -> 一樓, 5 -> 五樓)
-const FLOOR_TEXT = { "1": "一樓", "2": "二樓", "3": "三樓", "4": "四樓", "5": "五樓", "6": "六樓" };
+// 規則對應表
+const BUILDING_NAMES = { "A": "書香樓", "B": "星空樓", "C": "樂動樓" };
+const FLOOR_NAMES = { "1": "一樓", "2": "二樓", "3": "三樓", "4": "四樓", "5": "五樓", "6": "六樓" };
 
 async function loadData() {
   try {
@@ -70,8 +39,8 @@ async function loadData() {
       fetch('./data/events.json')
     ]);
 
-    if (!sheetsRes.ok) throw new Error(`Google 試算表連線失敗 (HTTP ${sheetsRes.status})`);
-    if (!eventsRes.ok) throw new Error(`events.json 載入失敗 (HTTP ${eventsRes.status})`);
+    if (!sheetsRes.ok) throw new Error(`Google 試算表連線失敗`);
+    if (!eventsRes.ok) throw new Error(`events.json 載入失敗`);
 
     const csvText = await sheetsRes.text();
     try {
@@ -106,32 +75,19 @@ function parseCSVToStalls(csvText) {
 
     if (!grade || grade === '年級') continue;
 
-    let displayName = '';
-    let shortName = '';
+    let shortName = (grade === '朝陽班' || grade.includes('朝陽')) ? '朝陽' : `${grade.replace(/[^0-9]/g, '')}-${className}`;
+    let displayName = shortName === '朝陽' ? '朝陽班' : `${grade}${className}班`;
 
-    if (grade === '朝陽班' || grade.includes('朝陽')) {
-      displayName = '朝陽班';
-      shortName = '朝陽';
-    } else {
-      const gNum = grade.replace(/[^0-9]/g, '');
-      displayName = `${grade}${className}班`;
-      shortName = `${gNum}-${className}`;
-    }
+    // 根據 Room Code 自動判斷位置
+    const roomCode = CLASS_ROOM_MAP[shortName] || "";
+    let building = "待定";
+    let floor = "待定";
 
-    // 動態判斷樓別與樓層邏輯
-    let loc = CLASS_LOCATION_MAP[shortName];
-    
-    // 如果對應表內沒設定，則嘗試根據 room 代碼自動判別 (規則：A-書香, B-星空, C-樂動)
-    if (loc && loc.room) {
-      const bCode = loc.room.charAt(0);
-      const fNum = loc.room.charAt(1);
-      
-      const bName = bCode === 'A' ? '書香樓' : bCode === 'B' ? '星空樓' : bCode === 'C' ? '樂動樓' : loc.building;
-      const fName = FLOOR_TEXT[fNum] || loc.floor;
-      
-      loc = { building: bName, floor: fName, room: loc.room };
-    } else {
-      loc = { building: '待定', floor: '待定', room: '' };
+    if (roomCode) {
+      const bLetter = roomCode.charAt(0).toUpperCase();
+      const fDigit = roomCode.charAt(1);
+      building = BUILDING_NAMES[bLetter] || "未知建築";
+      floor = FLOOR_NAMES[fDigit] || "未知樓層";
     }
 
     const items = rawProducts.split(/[0-9]\.|\s+|，|、|,/).map(item => item.trim()).filter(Boolean);
@@ -146,17 +102,11 @@ function parseCSVToStalls(csvText) {
     if (tags.length === 0) tags.push('其他');
 
     result.push({
-      grade,
-      class: className,
-      displayName,
-      shortName,
-      rawProducts,
-      items,
+      grade, class: className, displayName, shortName, rawProducts, items,
       tags: [...new Set(tags)],
-      building: loc.building,
-      floor: loc.floor,
-      estimatedRoomCode: loc.room,
-      estimatedLocationName: loc.room ? `${shortName} 教室` : '請參考平面圖'
+      building, floor,
+      estimatedRoomCode: roomCode,
+      estimatedLocationName: roomCode ? `${shortName} 教室` : '請參考平面圖'
     });
   }
   return result;
