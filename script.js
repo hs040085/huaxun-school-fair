@@ -14,62 +14,111 @@ let stalls = [];
 let events = [];
 let activeTag = '';
 
+// Google 試算表 CSV 匯出網址
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1C3Nxm5wBejO3-snx2KgbranXoaLPiHFmWvrb9Sf_CAs/gviz/tq?tqx=out:csv';
+
 async function loadData() {
- try {
- const [stallsRes, eventsRes] = await Promise.all([
- fetch('./data/stalls.json'),
- fetch('./data/events.json')
- ]);
+  try {
+    // 同時讀取 Google 試算表與本地 events.json
+    const [sheetsRes, eventsRes] = await Promise.all([
+      fetch(SHEET_URL),
+      fetch('./data/events.json')
+    ]);
 
- if (!stallsRes.ok) {
- throw new Error(`stalls.json 載入失敗：${stallsRes.status}`);
- }
+    if (!sheetsRes.ok) throw new Error('無法連線至 Google 試算表');
+    if (!eventsRes.ok) throw new Error('events.json 載入失敗');
 
- if (!eventsRes.ok) {
- throw new Error(`events.json 載入失敗：${eventsRes.status}`);
- }
+    const csvText = await sheetsRes.text();
+    events = await eventsRes.json();
 
- stalls = await stallsRes.json();
- events = await eventsRes.json();
+    // 解析 CSV 資料並轉換格式
+    stalls = parseCSVToStalls(csvText);
 
- if (!Array.isArray(stalls)) stalls = [];
- if (!Array.isArray(events)) events = [];
+    if (!Array.isArray(stalls)) stalls = [];
+    if (!Array.isArray(events)) events = [];
 
- initFilters();
- renderTagChips();
- renderStalls();
- renderEvents();
- } catch (error) {
- console.error('資料載入失敗：', error);
+    initFilters();
+    renderTagChips();
+    renderStalls();
+    renderEvents();
+  } catch (error) {
+    console.error('資料同步失敗：', error);
+    showErrorState(error.message);
+  }
+}
 
- if (stallGrid) {
- stallGrid.innerHTML = `
- <div class="empty" style="grid-column:1/-1;">
- <div style="font-size:40px;">⚠️</div>
- <strong style="display:block; margin-top:8px; color:#4f473f;">資料載入失敗</strong>
- <div style="margin-top:6px;">請確認 data 資料夾、JSON 格式與檔案路徑是否正確。</div>
- </div>
- `;
- }
+// 輔助函式：解析 CSV 並轉換為攤位格式
+function parseCSVToStalls(csvText) {
+  const lines = csvText.split(/\r?\n/);
+  const result = [];
+  
+  // 假設第一行是標題，從第二行開始處理
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line.trim()) continue;
 
- if (resultCount) {
- resultCount.textContent = '資料載入失敗';
- }
+    // 處理 CSV 欄位（考慮引號內可能有逗點的情況）
+    const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/^"|"$/g, '').trim());
+    
+    const grade = cols[0];
+    const className = cols[1];
+    const rawProducts = cols[2] || '';
 
- if (currentFilters) {
- currentFilters.textContent = '請檢查 stalls.json / events.json';
- }
+    if (!grade || grade === '年級') continue;
 
- if (eventGrid) {
- eventGrid.innerHTML = `
- <div class="empty" style="grid-column:1/-1;">
- <div style="font-size:36px;">⚠️</div>
- <strong style="display:block; margin-top:8px; color:#4f473f;">其他活動資料載入失敗</strong>
- <div style="margin-top:6px;">請確認 <code>data/events.json</code> 是否存在且格式正確。</div>
- </div>
- `;
- }
- }
+    let displayName = '';
+    let shortName = '';
+
+    if (grade === '朝陽班') {
+      displayName = '朝陽班';
+      shortName = '朝陽';
+    } else {
+      const gNum = grade.replace(/[^0-9]/g, '');
+      displayName = `${grade}${className}班`;
+      shortName = `${gNum}-${className}`;
+    }
+
+    // 拆分產品 (依據數字編號、空格、逗點、頓號)
+    const items = rawProducts
+      .split(/[0-9]\.|\s+|，|、|,/)
+      .map(item => item.trim())
+      .filter(item => item !== '');
+
+    // 自動判斷標籤
+    const tags = [];
+    if (/飲|水|茶|奶|汁|冰/.test(rawProducts)) tags.push('飲食');
+    if (/遊戲|抽|套|圈|球|射|彈|戳|洞/.test(rawProducts)) tags.push('遊戲');
+    if (/二手|拍|布偶|玩具|卡/.test(rawProducts)) tags.push('義賣');
+    if (tags.length === 0) tags.push('其他');
+
+    result.push({
+      grade,
+      class: className,
+      displayName,
+      shortName,
+      rawProducts,
+      items,
+      tags,
+      building: '待定', 
+      floor: '待定',    
+      estimatedRoomCode: '',
+      estimatedLocationName: '請參考平面圖'
+    });
+  }
+  return result;
+}
+
+function showErrorState(msg) {
+  if (stallGrid) {
+    stallGrid.innerHTML = `
+      <div class="empty" style="grid-column:1/-1;">
+        <div style="font-size:40px;">⚠️</div>
+        <strong style="display:block; margin-top:8px; color:#4f473f;">資料同步失敗</strong>
+        <div style="margin-top:6px;">錯誤訊息：${msg}</div>
+        <div style="margin-top:12px; font-size:12px; color:var(--muted);">請確認網路連線或試算表共用設定。</div>
+      </div>
+    `;
+  }
 }
 
 function uniqueValues(list, key) {
