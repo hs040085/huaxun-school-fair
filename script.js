@@ -9,7 +9,6 @@ const currentFilters = document.getElementById('currentFilters');
 const eventGrid = document.getElementById('eventGrid');
 const resetBtn = document.getElementById('resetBtn');
 
-
 let stalls = [];
 let events = [];
 let activeTag = '';
@@ -17,9 +16,50 @@ let activeTag = '';
 // Google 試算表 CSV 匯出網址
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1C3Nxm5wBejO3-snx2KgbranXoaLPiHFmWvrb9Sf_CAs/gviz/tq?tqx=out:csv';
 
+/**
+ * 樓層與位置對應表 (Map)
+ * 根據原始 data/stalls.json 整理而成，確保自動補齊位置資訊
+ */
+const CLASS_LOCATION_MAP = {
+  "3-1": { "building": "書香樓", "floor": "三樓", "room": "A309" },
+  "3-2": { "building": "書香樓", "floor": "三樓", "room": "A308" },
+  "3-3": { "building": "書香樓", "floor": "三樓", "room": "A307" },
+  "3-4": { "building": "書香樓", "floor": "三樓", "room": "A306" },
+  "3-5": { "building": "書香樓", "floor": "三樓", "room": "A305" },
+  "3-6": { "building": "書香樓", "floor": "三樓", "room": "A304" },
+  "3-7": { "building": "書香樓", "floor": "三樓", "room": "A303" },
+  "3-8": { "building": "書香樓", "floor": "四樓", "room": "A403" },
+  "4-1": { "building": "書香樓", "floor": "四樓", "room": "A404" },
+  "4-2": { "building": "書香樓", "floor": "四樓", "room": "A405" },
+  "4-3": { "building": "書香樓", "floor": "四樓", "room": "A406" },
+  "4-4": { "building": "書香樓", "floor": "四樓", "room": "A407" },
+  "4-5": { "building": "書香樓", "floor": "四樓", "room": "A408" },
+  "4-6": { "building": "書香樓", "floor": "四樓", "room": "A409" },
+  "4-7": { "building": "星空樓", "floor": "一樓", "room": "B401" },
+  "4-8": { "building": "星空樓", "floor": "二樓", "room": "B402" },
+  "5-1": { "building": "星空樓", "floor": "二樓", "room": "B403" },
+  "5-2": { "building": "星空樓", "floor": "三樓", "room": "B408" },
+  "5-3": { "building": "星空樓", "floor": "四樓", "room": "B409" },
+  "5-4": { "building": "星空樓", "floor": "五樓", "room": "B410" },
+  "5-5": { "building": "星空樓", "floor": "五樓", "room": "B510" },
+  "5-6": { "building": "星空樓", "floor": "四樓", "room": "B509" },
+  "5-7": { "building": "星空樓", "floor": "三樓", "room": "B508" },
+  "5-8": { "building": "星空樓", "floor": "一樓", "room": "B503" },
+  "5-9": { "building": "星空樓", "floor": "一樓", "room": "B502" },
+  "6-1": { "building": "星空樓", "floor": "一樓", "room": "B501" },
+  "6-2": { "building": "書香樓", "floor": "五樓", "room": "A509" },
+  "6-3": { "building": "星空樓", "floor": "一樓", "room": "B102" },
+  "6-4": { "building": "書香樓", "floor": "五樓", "room": "A508" },
+  "6-5": { "building": "書香樓", "floor": "五樓", "room": "A507" },
+  "6-6": { "building": "書香樓", "floor": "五樓", "room": "A506" },
+  "6-7": { "building": "書香樓", "floor": "五樓", "room": "A505" },
+  "6-8": { "building": "書香樓", "floor": "五樓", "room": "A504" },
+  "6-9": { "building": "書香樓", "floor": "五樓", "room": "A503" },
+  "朝陽": { "building": "星空樓", "floor": "二樓", "room": "B202" }
+};
+
 async function loadData() {
   try {
-    // 同時讀取 Google 試算表與本地 events.json
     const [sheetsRes, eventsRes] = await Promise.all([
       fetch(SHEET_URL),
       fetch('./data/events.json')
@@ -31,33 +71,26 @@ async function loadData() {
     const csvText = await sheetsRes.text();
     events = await eventsRes.json();
 
-    // 解析 CSV 資料並轉換格式
     stalls = parseCSVToStalls(csvText);
-
-    if (!Array.isArray(stalls)) stalls = [];
-    if (!Array.isArray(events)) events = [];
 
     initFilters();
     renderTagChips();
     renderStalls();
     renderEvents();
   } catch (error) {
-    console.error('資料同步失敗：', error);
+    console.error('資料載入失敗：', error);
     showErrorState(error.message);
   }
 }
 
-// 輔助函式：解析 CSV 並轉換為攤位格式
 function parseCSVToStalls(csvText) {
   const lines = csvText.split(/\r?\n/);
   const result = [];
   
-  // 假設第一行是標題，從第二行開始處理
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i];
     if (!line.trim()) continue;
 
-    // 處理 CSV 欄位（考慮引號內可能有逗點的情況）
     const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/^"|"$/g, '').trim());
     
     const grade = cols[0];
@@ -78,17 +111,23 @@ function parseCSVToStalls(csvText) {
       shortName = `${gNum}-${className}`;
     }
 
-    // 拆分產品 (依據數字編號、空格、逗點、頓號)
+    // 取得位置資訊 (從 CLASS_LOCATION_MAP 補齊)
+    const loc = CLASS_LOCATION_MAP[shortName] || { building: '待定', floor: '待定', room: '' };
+
+    // 拆分產品
     const items = rawProducts
       .split(/[0-9]\.|\s+|，|、|,/)
       .map(item => item.trim())
       .filter(item => item !== '');
 
-    // 自動判斷標籤
+    // 強化標籤判斷 (參考原始風格)
     const tags = [];
-    if (/飲|水|茶|奶|汁|冰/.test(rawProducts)) tags.push('飲食');
-    if (/遊戲|抽|套|圈|球|射|彈|戳|洞/.test(rawProducts)) tags.push('遊戲');
-    if (/二手|拍|布偶|玩具|卡/.test(rawProducts)) tags.push('義賣');
+    if (/飲|水|茶|奶|汁/.test(rawProducts)) tags.push('飲料');
+    if (/冰|凍/.test(rawProducts)) tags.push('冰品');
+    if (/餅乾|蛋|豆干|捲|麵|糖|米粉/.test(rawProducts)) tags.push('食物');
+    if (/布蕾|奶酪|甜甜圈|鬆餅/.push(rawProducts)) tags.push('甜點');
+    if (/遊戲|抽|套|圈|球|射|彈|戳|洞|扭蛋/.test(rawProducts)) tags.push('遊戲');
+    if (/二手|拍|布偶|娃娃|玩具|卡/.test(rawProducts)) tags.push('義賣');
     if (tags.length === 0) tags.push('其他');
 
     result.push({
@@ -98,11 +137,11 @@ function parseCSVToStalls(csvText) {
       shortName,
       rawProducts,
       items,
-      tags,
-      building: '待定', 
-      floor: '待定',    
-      estimatedRoomCode: '',
-      estimatedLocationName: '請參考平面圖'
+      tags: [...new Set(tags)], // 去重
+      building: loc.building,
+      floor: loc.floor,
+      estimatedRoomCode: loc.room,
+      estimatedLocationName: loc.room ? `${shortName} 教室` : '請參考平面圖'
     });
   }
   return result;
@@ -110,293 +149,145 @@ function parseCSVToStalls(csvText) {
 
 function showErrorState(msg) {
   if (stallGrid) {
-    stallGrid.innerHTML = `
-      <div class="empty" style="grid-column:1/-1;">
-        <div style="font-size:40px;">⚠️</div>
-        <strong style="display:block; margin-top:8px; color:#4f473f;">資料同步失敗</strong>
-        <div style="margin-top:6px;">錯誤訊息：${msg}</div>
-        <div style="margin-top:12px; font-size:12px; color:var(--muted);">請確認網路連線或試算表共用設定。</div>
-      </div>
-    `;
+    stallGrid.innerHTML = `<div class="empty" style="grid-column:1/-1;">⚠️ 資料同步失敗：${msg}</div>`;
   }
 }
 
 function uniqueValues(list, key) {
- return [...new Set(
- list
- .map(item => item?.[key])
- .filter(Boolean)
- )];
+  return [...new Set(list.map(item => item?.[key]).filter(Boolean))];
 }
 
 function populateSelect(select, values) {
- if (!select) return;
- values.forEach(value => {
- const option = document.createElement('option');
- option.value = value;
- option.textContent = value;
- select.appendChild(option);
- });
-}
-
-function normalizeKeyword(text) {
- return (text || '').trim().toLowerCase();
-}
-
-function parseClassKeyword(keyword) {
- const normalized = (keyword || '').replace(/\s+/g, '');
- const match = normalized.match(/^([3-6])[-－_]?([1-9])$/);
- if (!match) return null;
-
- return {
- displayName: `${match[1]}年級${match[2]}班`,
- shortName: `${match[1]}-${match[2]}`
- };
+  if (!select) return;
+  values.sort().forEach(value => {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = value;
+    select.appendChild(option);
+  });
 }
 
 function initFilters() {
- populateSelect(gradeFilter, uniqueValues(stalls, 'grade'));
- populateSelect(buildingFilter, uniqueValues(stalls, 'building'));
- populateSelect(floorFilter, uniqueValues(stalls, 'floor'));
+  if (gradeFilter) gradeFilter.innerHTML = '<option value="">全部年級</option>';
+  if (buildingFilter) buildingFilter.innerHTML = '<option value="">全部樓別</option>';
+  if (floorFilter) floorFilter.innerHTML = '<option value="">全部樓層</option>';
+  
+  populateSelect(gradeFilter, uniqueValues(stalls, 'grade'));
+  populateSelect(buildingFilter, uniqueValues(stalls, 'building'));
+  populateSelect(floorFilter, uniqueValues(stalls, 'floor'));
 }
 
 function renderTagChips() {
- if (!tagChips) return;
+  if (!tagChips) return;
+  const tags = [...new Set(stalls.flatMap(item => item.tags))];
+  tagChips.innerHTML = '';
+  const allChip = createChip('全部類型', '');
+  tagChips.appendChild(allChip);
+  tags.forEach(tag => tagChips.appendChild(createChip(tag, tag)));
+}
 
- const tags = [...new Set(
- stalls.flatMap(item => Array.isArray(item?.tags) ? item.tags : [])
- )];
-
- tagChips.innerHTML = '';
-
- const allChip = document.createElement('button');
- allChip.className = `chip ${activeTag === '' ? 'active' : ''}`;
- allChip.textContent = '全部類型';
- allChip.addEventListener('click', () => {
- activeTag = '';
- renderTagChips();
- renderStalls();
- });
- tagChips.appendChild(allChip);
-
- tags.forEach(tag => {
- const btn = document.createElement('button');
- btn.className = `chip ${activeTag === tag ? 'active' : ''}`;
- btn.textContent = tag;
- btn.addEventListener('click', () => {
- activeTag = activeTag === tag ? '' : tag;
- renderTagChips();
- renderStalls();
- });
- tagChips.appendChild(btn);
- });
+function createChip(text, value) {
+  const btn = document.createElement('button');
+  btn.className = `chip ${activeTag === value ? 'active' : ''}`;
+  btn.textContent = text;
+  btn.onclick = () => { activeTag = value; renderTagChips(); renderStalls(); };
+  return btn;
 }
 
 function filterStalls() {
- const rawKeyword = searchInput?.value || '';
- const keyword = normalizeKeyword(rawKeyword);
- const classKeyword = parseClassKeyword(keyword);
+  const keyword = (searchInput?.value || '').trim().toLowerCase();
+  const grade = gradeFilter?.value || '';
+  const building = buildingFilter?.value || '';
+  const floor = floorFilter?.value || '';
 
- const grade = gradeFilter?.value || '';
- const building = buildingFilter?.value || '';
- const floor = floorFilter?.value || '';
-
- return stalls.filter(item => {
- const displayName = item?.displayName || '';
- const shortName = item?.shortName || '';
- const rawProducts = item?.rawProducts || '';
- const items = Array.isArray(item?.items) ? item.items : [];
- const estimatedRoomCode = item?.estimatedRoomCode || '';
- const estimatedLocationName = item?.estimatedLocationName || '';
- const itemFloor = item?.floor || '';
- const itemBuilding = item?.building || '';
- const tags = Array.isArray(item?.tags) ? item.tags : [];
-
- const keywordMatched =
- !keyword ||
- displayName.toLowerCase().includes(keyword) ||
- shortName.toLowerCase().includes(keyword) ||
- rawProducts.toLowerCase().includes(keyword) ||
- items.some(i => String(i).toLowerCase().includes(keyword)) ||
- estimatedRoomCode.toLowerCase().includes(keyword) ||
- estimatedLocationName.toLowerCase().includes(keyword) ||
- itemFloor.toLowerCase().includes(keyword) ||
- itemBuilding.toLowerCase().includes(keyword) ||
- (classKeyword && (
- displayName === classKeyword.displayName ||
- shortName === classKeyword.shortName
- ));
-
- const gradeMatched = !grade || item?.grade === grade;
- const buildingMatched = !building || itemBuilding === building;
- const floorMatched = !floor || itemFloor === floor;
- const tagMatched = !activeTag || tags.includes(activeTag);
-
- return keywordMatched && gradeMatched && buildingMatched && floorMatched && tagMatched;
- });
-}
-
-function updateCurrentFilters(filteredCount) {
- if (!currentFilters) return;
-
- const parts = [];
-
- const keyword = searchInput?.value?.trim() || '';
- const grade = gradeFilter?.value || '';
- const building = buildingFilter?.value || '';
- const floor = floorFilter?.value || '';
-
- if (keyword) parts.push(`關鍵字：${keyword}`);
- if (grade) parts.push(`年級：${grade}`);
- if (building) parts.push(`樓別：${building}`);
- if (floor) parts.push(`樓層：${floor}`);
- if (activeTag) parts.push(`類型：${activeTag}`);
-
- if (!parts.length) {
- currentFilters.textContent = `目前條件：全部（共 ${filteredCount} 筆）`;
- return;
- }
-
- currentFilters.textContent = `目前條件：${parts.join('／')}（共 ${filteredCount} 筆）`;
+  return stalls.filter(item => {
+    const matchedKeyword = !keyword || 
+      item.displayName.toLowerCase().includes(keyword) || 
+      item.shortName.toLowerCase().includes(keyword) ||
+      item.rawProducts.toLowerCase().includes(keyword) ||
+      item.estimatedRoomCode.toLowerCase().includes(keyword);
+    
+    return matchedKeyword && 
+           (!grade || item.grade === grade) && 
+           (!building || item.building === building) && 
+           (!floor || item.floor === floor) && 
+           (!activeTag || item.tags.includes(activeTag));
+  });
 }
 
 function renderStalls() {
- if (!stallGrid || !resultCount) return;
+  if (!stallGrid || !resultCount) return;
+  const filtered = filterStalls();
+  resultCount.textContent = `共 ${filtered.length} 筆`;
+  
+  if (!filtered.length) {
+    stallGrid.innerHTML = '<div class="empty" style="grid-column:1/-1;">🔎 查無符合條件的攤位</div>';
+    return;
+  }
 
- const filtered = filterStalls();
- resultCount.textContent = `共 ${filtered.length} 筆`;
- updateCurrentFilters(filtered.length);
-
- if (!filtered.length) {
- stallGrid.innerHTML = `
- <div class="empty" style="grid-column:1/-1;">
- <div style="font-size:40px;">🔎</div>
- <strong style="display:block; margin-top:8px; color:#4f473f;">查無符合條件的攤位</strong>
- <div style="margin-top:6px;">試試看輸入 3-1、朝陽班、套圈圈、奶茶，或調整篩選條件。</div>
- </div>
- `;
- return;
- }
-
- stallGrid.innerHTML = filtered.map(item => {
- const tags = Array.isArray(item?.tags) ? item.tags : [];
- const items = Array.isArray(item?.items) ? item.items : [];
-
- return `
- <article class="card">
- <div class="card-top">
- <div class="title-wrap">
- <h4>${item?.displayName || ''}</h4>
- <p>${item?.shortName || ''}｜${item?.estimatedRoomCode || ''}｜${item?.estimatedLocationName || ''}</p>
- </div>
- </div>
-
- <div class="meta-list">
- <div class="meta-item">
- <span>樓別</span>
- <strong>${item?.building || ''}</strong>
- </div>
- <div class="meta-item">
- <span>樓層</span>
- <strong>${item?.floor || ''}</strong>
- </div>
- <div class="meta-item">
- <span>教室代碼</span>
- <strong>${item?.estimatedRoomCode || ''}</strong>
- </div>
- <div class="meta-item">
- <span>位置名稱</span>
- <strong>${item?.estimatedLocationName || ''}</strong>
- </div>
- </div>
-
- <div class="tags">
- ${tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
- </div>
-
- <div class="items">
- <strong>販賣／活動品項</strong>
- <ul>
- ${items.map(i => `<li>${i}</li>`).join('')}
- </ul>
- </div>
- </article>
- `;
- }).join('');
+  stallGrid.innerHTML = filtered.map(item => `
+    <article class="card">
+      <div class="card-top">
+        <div class="title-wrap">
+          <h4>${item.displayName}</h4>
+          <p>${item.shortName}｜${item.estimatedRoomCode}｜${item.estimatedLocationName}</p>
+        </div>
+      </div>
+      <div class="meta-list">
+        <div class="meta-item"><span>樓別</span><strong>${item.building}</strong></div>
+        <div class="meta-item"><span>樓層</span><strong>${item.floor}</strong></div>
+      </div>
+      <div class="tags">${item.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>
+      <div class="items">
+        <strong>販賣／活動品項</strong>
+        <ul>${item.items.map(i => `<li>${i}</li>`).join('')}</ul>
+      </div>
+    </article>
+  `).join('');
 }
 
 function renderEvents() {
- if (!eventGrid) return;
-
- if (!Array.isArray(events) || !events.length) {
- eventGrid.innerHTML = `
- <div class="empty" style="grid-column:1/-1;">
- <div style="font-size:36px;">📭</div>
- <strong style="display:block; margin-top:8px; color:#4f473f;">目前沒有其他已佔用場地資料</strong>
- </div>
- `;
- return;
- }
-
- eventGrid.innerHTML = events.map(event => `
- <article class="card">
- <div class="card-top">
- <div class="title-wrap">
- <h4>${event?.venue || ''}</h4>
- <p>${event?.unit || ''}</p>
- </div>
- <span class="pill pill-event">其他活動</span>
- </div>
-
- <div class="meta-list">
- <div class="meta-item">
- <span>開始時間</span>
- <strong>${event?.startTime || ''}</strong>
- </div>
- <div class="meta-item">
- <span>結束時間</span>
- <strong>${event?.endTime || ''}</strong> 
- </div>
-
- <div class="items">
- <strong>活動名稱</strong>
- <ul>
- <li>${event?.activityName || ''}</li>
- </ul>
- </div>
- </article>
- `).join('');
+  if (!eventGrid || !events.length) return;
+  eventGrid.innerHTML = events.map(event => `
+    <article class="card">
+      <div class="card-top">
+        <div class="title-wrap">
+          <h4>${event.venue}</h4>
+          <p>${event.unit}</p>
+        </div>
+        <span class="pill pill-event">其他活動</span>
+      </div>
+      <div class="meta-list">
+        <div class="meta-item"><span>時間</span><strong>${event.startTime}-${event.endTime}</strong></div>
+      </div>
+      <div class="items">
+        <strong>活動名稱</strong>
+        <ul><li>${event.activityName}</li></ul>
+      </div>
+    </article>
+  `).join('');
 }
 
 function resetFilters() {
- if (searchInput) searchInput.value = '';
- if (gradeFilter) gradeFilter.value = '';
- if (buildingFilter) buildingFilter.value = '';
- if (floorFilter) floorFilter.value = '';
- activeTag = '';
- renderTagChips();
- renderStalls();
+  if (searchInput) searchInput.value = '';
+  if (gradeFilter) gradeFilter.value = '';
+  if (buildingFilter) buildingFilter.value = '';
+  if (floorFilter) floorFilter.value = '';
+  activeTag = '';
+  renderTagChips();
+  renderStalls();
 }
 
 [searchInput, gradeFilter, buildingFilter, floorFilter].forEach(el => {
- if (!el) return;
- el.addEventListener('input', renderStalls);
- el.addEventListener('change', renderStalls);
+  el?.addEventListener('input', renderStalls);
+  el?.addEventListener('change', renderStalls);
 });
 
-if (resetBtn) {
- resetBtn.addEventListener('click', resetFilters);
-}
+resetBtn?.addEventListener('click', resetFilters);
 
 loadData();
 
-// 回到最上方按鈕邏輯
-const backToTopButton = document.getElementById('backToTopBtn');
-if (backToTopButton) {
- backToTopButton.onclick = function () {
- window.scrollTo({
- top: 0,
- behavior: 'smooth'
- });
- };
+const backToTopBtn = document.getElementById('backToTopBtn');
+if (backToTopBtn) {
+  backToTopBtn.onclick = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 }
