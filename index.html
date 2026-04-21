@@ -3,8 +3,8 @@
 <head>
  <meta charset="UTF-8" />
  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
- <title>華勛國小親職教育日｜班級攤位查詢 v1.4</title>
- <link rel="stylesheet" href="./style.css?v=1.4" />
+ <title>華勛國小親職教育日｜班級攤位查詢 v1.5</title>
+ <link rel="stylesheet" href="./style.css?v=1.5" />
 </head>
 <body>
  <header class="topbar">
@@ -143,13 +143,12 @@
  </section>
  
  <footer style="text-align: center; padding: 40px 0; color: #ccc; font-size: 12px;">
- 華勛國小親職教育日查詢系統 系統版本 1.4 (All-in-one)
+ 華勛國小親職教育日查詢系統 系統版本 1.5 (Final Fix)
  </footer>
  </main>
 
  <button id="backToTopBtn" class="back-to-top" type="button" aria-label="回到最上方">↑</button>
 
- <!-- 終極修復：將所有 JS 邏輯直接內嵌，確保 100% 同步更新 -->
  <script>
 const searchInput = document.getElementById('searchInput');
 const gradeFilter = document.getElementById('gradeFilter');
@@ -257,9 +256,9 @@ const DEFAULT_STALLS_DATA = [
 
 const DEFAULT_EVENTS_DATA = [
   { "id": "event-001", "unit": "學務處、輔導室", "venue": "英語情境教室", "activityName": "健康促進學校有獎徵答活動、「心手相連」親子闖關體驗活動", "startTime": "10:00", "endTime": "11:00", "roomCode": "B102" },
-  { "id": "event-002", "unit": "教務處", "venue": "C401", "activityName": "Nga'ay ho! 太陽的部落（阿美族）", "startTime": "09:30", "endTime": "11:30" },
+  { "id": "event-002", "unit": "教務處", "venue": "C401", "activityName": "Nga'ay ho! 太陽的部落（阿美族）", "startTime": "09:30", "endTime": "11:30", "roomCode": "C101" },
   { "id": "event-003", "unit": "教務處", "venue": "B404", "activityName": "台語大賣場（閩語）", "startTime": "09:30", "endTime": "11:30" },
-  { "id": "event-004", "unit": "教務處", "venue": "C403", "activityName": "客家米食文化闖關（客語）", "startTime": "09:30", "endTime": "11:30" },
+  { "id": "event-004", "unit": "教務處", "venue": "C403", "activityName": "客家米食文化闖關（客語）", "startTime": "09:30", "endTime": "11:30", "roomCode": "C101" },
   { "id": "event-005", "unit": "元智", "venue": "星空樓川堂", "activityName": "國際暨本土多元文化闖關體驗活動（含元智國際文化、印尼、泰國文化體驗及 SEL 親子抓寶）", "startTime": "09:30", "endTime": "11:30", "roomCode": "C101" }
 ];
 
@@ -282,6 +281,15 @@ async function loadData() {
     } catch(e) {
       events = DEFAULT_EVENTS_DATA;
     }
+    
+    // 強制修復：確保關鍵活動一定有座標
+    events.forEach(ev => {
+      if (ev.venue.includes('英語情境教室')) ev.roomCode = 'B102';
+      if (ev.venue.includes('星空樓川堂')) ev.roomCode = 'C101';
+      if (ev.venue.includes('C401')) ev.roomCode = 'C101';
+      if (ev.venue.includes('C403')) ev.roomCode = 'C101';
+    });
+
     stalls = mergeRegistryWithData(csvData, DEFAULT_STALLS_DATA);
     renderAll();
   } catch (error) {
