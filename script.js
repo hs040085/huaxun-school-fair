@@ -13,13 +13,9 @@ let stalls = [];
 let events = [];
 let activeTag = '';
 
-// Google 試算表 CSV 匯出網址
+// Google 試算表 CSV 匯出網址 (請確保試算表已設定為「知道連結的人即可檢視」)
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1C3Nxm5wBejO3-snx2KgbranXoaLPiHFmWvrb9Sf_CAs/gviz/tq?tqx=out:csv';
 
-/**
- * 樓層與位置對應表 (Map)
- * 根據原始 data/stalls.json 整理而成，確保自動補齊位置資訊
- */
 const CLASS_LOCATION_MAP = {
   "3-1": { "building": "書香樓", "floor": "三樓", "room": "A309" },
   "3-2": { "building": "書香樓", "floor": "三樓", "room": "A308" },
@@ -59,26 +55,39 @@ const CLASS_LOCATION_MAP = {
 };
 
 async function loadData() {
+  console.log('正在嘗試載入資料...');
   try {
     const [sheetsRes, eventsRes] = await Promise.all([
       fetch(SHEET_URL),
       fetch('./data/events.json')
     ]);
 
-    if (!sheetsRes.ok) throw new Error('無法連線至 Google 試算表');
-    if (!eventsRes.ok) throw new Error('events.json 載入失敗');
+    if (!sheetsRes.ok) throw new Error(`Google 試算表連線失敗 (HTTP ${sheetsRes.status})`);
+    if (!eventsRes.ok) throw new Error(`events.json 載入失敗 (HTTP ${eventsRes.status})`);
 
     const csvText = await sheetsRes.text();
-    events = await eventsRes.json();
+    console.log('成功獲取 CSV 資料，長度：', csvText.length);
+    
+    try {
+      events = await eventsRes.json();
+    } catch (e) {
+      console.error('events.json 格式錯誤', e);
+      events = [];
+    }
 
     stalls = parseCSVToStalls(csvText);
+    console.log('解析完成，攤位總數：', stalls.length);
+
+    if (stalls.length === 0) {
+      throw new Error('試算表內容解析後為空，請檢查試算表欄位順序。');
+    }
 
     initFilters();
     renderTagChips();
     renderStalls();
     renderEvents();
   } catch (error) {
-    console.error('資料載入失敗：', error);
+    console.error('主程式錯誤：', error);
     showErrorState(error.message);
   }
 }
@@ -102,7 +111,7 @@ function parseCSVToStalls(csvText) {
     let displayName = '';
     let shortName = '';
 
-    if (grade === '朝陽班') {
+    if (grade === '朝陽班' || grade.includes('朝陽')) {
       displayName = '朝陽班';
       shortName = '朝陽';
     } else {
@@ -111,21 +120,14 @@ function parseCSVToStalls(csvText) {
       shortName = `${gNum}-${className}`;
     }
 
-    // 取得位置資訊 (從 CLASS_LOCATION_MAP 補齊)
     const loc = CLASS_LOCATION_MAP[shortName] || { building: '待定', floor: '待定', room: '' };
+    const items = rawProducts.split(/[0-9]\.|\s+|，|、|,/).map(item => item.trim()).filter(Boolean);
 
-    // 拆分產品
-    const items = rawProducts
-      .split(/[0-9]\.|\s+|，|、|,/)
-      .map(item => item.trim())
-      .filter(item => item !== '');
-
-    // 強化標籤判斷 (參考原始風格)
     const tags = [];
     if (/飲|水|茶|奶|汁/.test(rawProducts)) tags.push('飲料');
     if (/冰|凍/.test(rawProducts)) tags.push('冰品');
     if (/餅乾|蛋|豆干|捲|麵|糖|米粉/.test(rawProducts)) tags.push('食物');
-    if (/布蕾|奶酪|甜甜圈|鬆餅/.push(rawProducts)) tags.push('甜點');
+    if (/布蕾|奶酪|甜甜圈|鬆餅/.test(rawProducts)) tags.push('甜點'); // 修正：此處原為 .push 誤植
     if (/遊戲|抽|套|圈|球|射|彈|戳|洞|扭蛋/.test(rawProducts)) tags.push('遊戲');
     if (/二手|拍|布偶|娃娃|玩具|卡/.test(rawProducts)) tags.push('義賣');
     if (tags.length === 0) tags.push('其他');
@@ -137,7 +139,7 @@ function parseCSVToStalls(csvText) {
       shortName,
       rawProducts,
       items,
-      tags: [...new Set(tags)], // 去重
+      tags: [...new Set(tags)],
       building: loc.building,
       floor: loc.floor,
       estimatedRoomCode: loc.room,
@@ -149,7 +151,14 @@ function parseCSVToStalls(csvText) {
 
 function showErrorState(msg) {
   if (stallGrid) {
-    stallGrid.innerHTML = `<div class="empty" style="grid-column:1/-1;">⚠️ 資料同步失敗：${msg}</div>`;
+    stallGrid.innerHTML = `
+      <div class="empty" style="grid-column:1/-1;">
+        <div style="font-size:40px;">⚠️</div>
+        <strong style="display:block; margin-top:8px; color:#4f473f;">資料同步失敗</strong>
+        <div style="margin-top:6px;">${msg}</div>
+        <div style="margin-top:12px; font-size:12px; color:var(--muted);">請確認：<br>1. 網路連線是否正常<br>2. 試算表共用設定是否改為「知道連結的人即可檢視」<br>3. 試算表是否已執行「發布到網路」</div>
+      </div>
+    `;
   }
 }
 
