@@ -13,9 +13,15 @@ let stalls = [];
 let events = [];
 let activeTag = '';
 
-// Google 試算表 CSV 匯出網址 (請確保試算表已設定為「知道連結的人即可檢視」)
+// Google 試算表 CSV 匯出網址
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1C3Nxm5wBejO3-snx2KgbranXoaLPiHFmWvrb9Sf_CAs/gviz/tq?tqx=out:csv';
 
+/**
+ * 樓層與位置對應表 (Map)
+ * 規則說明：
+ * A: 書香樓, B: 星空樓, C: 樂動樓
+ * 數字第1碼為樓層 (例: B502 為星空樓5樓)
+ */
 const CLASS_LOCATION_MAP = {
   "3-1": { "building": "書香樓", "floor": "三樓", "room": "A309" },
   "3-2": { "building": "書香樓", "floor": "三樓", "room": "A308" },
@@ -31,18 +37,18 @@ const CLASS_LOCATION_MAP = {
   "4-4": { "building": "書香樓", "floor": "四樓", "room": "A407" },
   "4-5": { "building": "書香樓", "floor": "四樓", "room": "A408" },
   "4-6": { "building": "書香樓", "floor": "四樓", "room": "A409" },
-  "4-7": { "building": "星空樓", "floor": "一樓", "room": "B401" },
-  "4-8": { "building": "星空樓", "floor": "二樓", "room": "B402" },
-  "5-1": { "building": "星空樓", "floor": "二樓", "room": "B403" },
-  "5-2": { "building": "星空樓", "floor": "三樓", "room": "B408" },
-  "5-3": { "building": "星空樓", "floor": "四樓", "room": "B409" },
-  "5-4": { "building": "星空樓", "floor": "五樓", "room": "B410" },
+  "4-7": { "building": "星空樓", "floor": "四樓", "room": "B401" }, // 修正：B401 為四樓
+  "4-8": { "building": "星空樓", "floor": "四樓", "room": "B402" }, // 修正：B402 為四樓
+  "5-1": { "building": "星空樓", "floor": "四樓", "room": "B403" }, // 修正：B403 為四樓
+  "5-2": { "building": "星空樓", "floor": "四樓", "room": "B408" }, // 修正：B408 為四樓
+  "5-3": { "building": "星空樓", "floor": "四樓", "room": "B409" }, // 修正：B409 為四樓
+  "5-4": { "building": "星空樓", "floor": "四樓", "room": "B410" }, // 修正：B410 為四樓
   "5-5": { "building": "星空樓", "floor": "五樓", "room": "B510" },
-  "5-6": { "building": "星空樓", "floor": "四樓", "room": "B509" },
-  "5-7": { "building": "星空樓", "floor": "三樓", "room": "B508" },
-  "5-8": { "building": "星空樓", "floor": "一樓", "room": "B503" },
-  "5-9": { "building": "星空樓", "floor": "一樓", "room": "B502" },
-  "6-1": { "building": "星空樓", "floor": "一樓", "room": "B501" },
+  "5-6": { "building": "星空樓", "floor": "五樓", "room": "B509" }, // 修正：B509 為五樓
+  "5-7": { "building": "星空樓", "floor": "五樓", "room": "B508" }, // 修正：B508 為五樓
+  "5-8": { "building": "星空樓", "floor": "五樓", "room": "B503" }, // 修正：B503 為五樓
+  "5-9": { "building": "星空樓", "floor": "五樓", "room": "B502" }, // 修正：B502 為五樓
+  "6-1": { "building": "星空樓", "floor": "五樓", "room": "B501" }, // 修正：B501 為五樓
   "6-2": { "building": "書香樓", "floor": "五樓", "room": "A509" },
   "6-3": { "building": "星空樓", "floor": "一樓", "room": "B102" },
   "6-4": { "building": "書香樓", "floor": "五樓", "room": "A508" },
@@ -54,8 +60,10 @@ const CLASS_LOCATION_MAP = {
   "朝陽": { "building": "星空樓", "floor": "二樓", "room": "B202" }
 };
 
+// 樓層數字轉文字輔助 (例: 1 -> 一樓, 5 -> 五樓)
+const FLOOR_TEXT = { "1": "一樓", "2": "二樓", "3": "三樓", "4": "四樓", "5": "五樓", "6": "六樓" };
+
 async function loadData() {
-  console.log('正在嘗試載入資料...');
   try {
     const [sheetsRes, eventsRes] = await Promise.all([
       fetch(SHEET_URL),
@@ -66,28 +74,18 @@ async function loadData() {
     if (!eventsRes.ok) throw new Error(`events.json 載入失敗 (HTTP ${eventsRes.status})`);
 
     const csvText = await sheetsRes.text();
-    console.log('成功獲取 CSV 資料，長度：', csvText.length);
-    
     try {
       events = await eventsRes.json();
-    } catch (e) {
-      console.error('events.json 格式錯誤', e);
-      events = [];
-    }
+    } catch (e) { events = []; }
 
     stalls = parseCSVToStalls(csvText);
-    console.log('解析完成，攤位總數：', stalls.length);
-
-    if (stalls.length === 0) {
-      throw new Error('試算表內容解析後為空，請檢查試算表欄位順序。');
-    }
 
     initFilters();
     renderTagChips();
     renderStalls();
     renderEvents();
   } catch (error) {
-    console.error('主程式錯誤：', error);
+    console.error('資料載入出錯：', error);
     showErrorState(error.message);
   }
 }
@@ -120,14 +118,29 @@ function parseCSVToStalls(csvText) {
       shortName = `${gNum}-${className}`;
     }
 
-    const loc = CLASS_LOCATION_MAP[shortName] || { building: '待定', floor: '待定', room: '' };
+    // 動態判斷樓別與樓層邏輯
+    let loc = CLASS_LOCATION_MAP[shortName];
+    
+    // 如果對應表內沒設定，則嘗試根據 room 代碼自動判別 (規則：A-書香, B-星空, C-樂動)
+    if (loc && loc.room) {
+      const bCode = loc.room.charAt(0);
+      const fNum = loc.room.charAt(1);
+      
+      const bName = bCode === 'A' ? '書香樓' : bCode === 'B' ? '星空樓' : bCode === 'C' ? '樂動樓' : loc.building;
+      const fName = FLOOR_TEXT[fNum] || loc.floor;
+      
+      loc = { building: bName, floor: fName, room: loc.room };
+    } else {
+      loc = { building: '待定', floor: '待定', room: '' };
+    }
+
     const items = rawProducts.split(/[0-9]\.|\s+|，|、|,/).map(item => item.trim()).filter(Boolean);
 
     const tags = [];
     if (/飲|水|茶|奶|汁/.test(rawProducts)) tags.push('飲料');
     if (/冰|凍/.test(rawProducts)) tags.push('冰品');
     if (/餅乾|蛋|豆干|捲|麵|糖|米粉/.test(rawProducts)) tags.push('食物');
-    if (/布蕾|奶酪|甜甜圈|鬆餅/.test(rawProducts)) tags.push('甜點'); // 修正：此處原為 .push 誤植
+    if (/布蕾|奶酪|甜甜圈|鬆餅/.test(rawProducts)) tags.push('甜點');
     if (/遊戲|抽|套|圈|球|射|彈|戳|洞|扭蛋/.test(rawProducts)) tags.push('遊戲');
     if (/二手|拍|布偶|娃娃|玩具|卡/.test(rawProducts)) tags.push('義賣');
     if (tags.length === 0) tags.push('其他');
@@ -151,14 +164,7 @@ function parseCSVToStalls(csvText) {
 
 function showErrorState(msg) {
   if (stallGrid) {
-    stallGrid.innerHTML = `
-      <div class="empty" style="grid-column:1/-1;">
-        <div style="font-size:40px;">⚠️</div>
-        <strong style="display:block; margin-top:8px; color:#4f473f;">資料同步失敗</strong>
-        <div style="margin-top:6px;">${msg}</div>
-        <div style="margin-top:12px; font-size:12px; color:var(--muted);">請確認：<br>1. 網路連線是否正常<br>2. 試算表共用設定是否改為「知道連結的人即可檢視」<br>3. 試算表是否已執行「發布到網路」</div>
-      </div>
-    `;
+    stallGrid.innerHTML = `<div class="empty" style="grid-column:1/-1;">⚠️ 資料載入失敗：${msg}</div>`;
   }
 }
 
