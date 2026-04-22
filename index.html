@@ -191,7 +191,8 @@ const FULL_SCHOOL_REGISTRY = {
   "D401":"D401", "D402":"D402", "D403":"D403", "D404":"D404", "D405":"D405", "D406":"D406",
   "D301":"D301", "D302":"D302", "D303":"D303", "D304":"D304", "D305":"D305", "D306":"D306", "D307":"D307", "D308":"D308",
   "D201":"D201", "D202":"D202", "D203":"D203", "D204":"D204", "D205":"D205", "D206":"D206", "D207":"D207", "D208":"D208",
-  "D101":"D101", "D102":"D102", "D103":"D103", "D104":"D104", "D105":"D105", "D106":"D106", "D107":"D107", "D108":"D108"
+  "D101":"D101", "D102":"D102", "D103":"D103", "D104":"D104", "D105":"D105", "D106":"D106", "D107":"D107", "D108":"D108",
+  "家長會":"A104"
 };
 
 const BUILDING_NAMES = { "A": "書香樓", "B": "星空樓", "C": "星空樓", "D": "樂動樓" };
@@ -316,7 +317,7 @@ function mergeRegistryWithData(csvData, localData) {
   const merged = [];
   const csvMap = {};
   csvData.forEach(item => {
-    let sName = item.grade.includes('朝陽') ? '朝陽' : `${item.grade.replace(/[^0-9]/g, '')}-${item.class}`;
+    let sName = item.grade.includes('朝陽') ? '朝陽' : item.grade.includes('家長會') ? '家長會' : `${item.grade.replace(/[^0-9]/g, '')}-${item.class}`;
     csvMap[sName] = item;
   });
   const localMap = {};
