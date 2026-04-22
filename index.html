@@ -55,6 +55,7 @@
  <section class="section" id="stalls">
  <div class="section-title">
  <div>
+ <div class="eyebrow-pill ep-pink">🏪 攤位查詢</div>
  <h3>班級攤位查詢</h3>
  <p>可依班級、品項、類型、樓別、樓層查詢</p>
  </div>
@@ -111,6 +112,7 @@
  <section class="section" id="map-section">
  <div class="section-title">
  <div>
+ <div class="eyebrow-pill ep-mint">🗺️ 地圖導覽</div>
  <h3>校園平面位置圖</h3>
  <p id="map-hint">搜尋班級後，此處將自動標註位置</p>
  </div>
@@ -135,6 +137,7 @@
  <section class="section" id="events">
  <div class="section-title">
  <div>
+ <div class="eyebrow-pill ep-blue">🎯 特別活動</div>
  <h3>其他場地活動</h3>
  <p>與班級攤位分開呈現</p>
  </div>
@@ -376,6 +379,13 @@ function highlightOnMap(roomCode, shortName, shouldScroll = true) {
   }
 }
 
+function getBuildingClass(building) {
+  if (building === '書香樓') return { bar: 'bar-shuxiang', pill: 'pill-building-shuxiang' };
+  if (building === '星空樓') return { bar: 'bar-xingkong', pill: 'pill-building-xingkong' };
+  if (building === '樂動樓') return { bar: 'bar-ledong',   pill: 'pill-building-ledong'   };
+  return { bar: 'bar-default', pill: 'pill-building-default' };
+}
+
 function renderStalls() {
   if (!stallGrid || !resultCount) return;
   const filtered = stalls.filter(item => {
@@ -393,8 +403,14 @@ function renderStalls() {
   });
   resultCount.textContent = `共 ${filtered.length} 筆`;
   if (filtered.length === 0) {
-    stallGrid.innerHTML = '<div class="empty">找不到符合條件的攤位 🔍</div>';
-    if (mapMarker) mapMarker.style.display = 'none';
+    stallGrid.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">🔍</div>
+        <p class="empty-state-title">找不到符合的攤位</p>
+        <p class="empty-state-sub">試試其他班級名稱或品項關鍵字，<br>例如「奶茶」、「套圈圈」、「4-2」</p>
+        <button class="btn btn-soft empty-state-reset" onclick="document.getElementById('resetBtn').click()">✕ 清除篩選，重新搜尋</button>
+      </div>
+    `;
     return;
   }
   const keyword = (searchInput?.value || '').trim();
@@ -404,14 +420,26 @@ function renderStalls() {
       document.getElementById('stalls').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }
-  stallGrid.innerHTML = filtered.map(item => `
+  stallGrid.innerHTML = filtered.map(item => {
+    const bc = getBuildingClass(item.building);
+    const MAX_ITEMS = 3;
+    const allItems = item.items.length > 0 ? item.items : [item.rawProducts];
+    const visibleItems = allItems.slice(0, MAX_ITEMS);
+    const hiddenCount = allItems.length - MAX_ITEMS;
+    const moreHtml = hiddenCount > 0
+      ? `<span class="items-more">+${hiddenCount} 更多</span>`
+      : '';
+    return `
     <article class="card ${item.hasStall ? '' : 'no-stall'}" onclick="highlightOnMap('${item.estimatedRoomCode}', '${item.displayName}', true)" style="cursor:pointer; border-style: ${item.hasStall ? 'solid' : 'dashed'};">
       <div class="card-top">
-        <div class="title-wrap">
-          <h4>${item.displayName}</h4>
-          <p>${item.shortName}｜${item.estimatedRoomCode}</p>
+        <div class="card-title-row">
+          <div class="card-building-bar ${bc.bar}"></div>
+          <div class="title-wrap">
+            <h4>${item.displayName}</h4>
+            <p>${item.shortName}｜${item.estimatedRoomCode}</p>
+          </div>
         </div>
-        <span class="pill">${item.hasStall ? '看位置' : '找教室'}</span>
+        <span class="pill ${bc.pill}">${item.building || '其他'}</span>
       </div>
       <div class="meta-list">
         <div class="meta-item"><span>樓別</span><strong>${item.building}</strong></div>
@@ -425,13 +453,11 @@ function renderStalls() {
       <div class="items">
         <strong>販賣品項 / 活動</strong>
         <ul>
-          ${item.items.length > 0 ? 
-            item.items.map(i => `<li>${i}</li>`).join('') : 
-            `<li>${item.rawProducts}</li>`}
-        </ul>
+          ${visibleItems.map(i => `<li>${i}</li>`).join('')}
+        </ul>${moreHtml}
       </div>
-    </article>
-  `).join('');
+    </article>`;
+  }).join('');
 }
 
 function renderEvents() {

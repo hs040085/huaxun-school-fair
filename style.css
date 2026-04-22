@@ -467,8 +467,8 @@ select{
 }
 
 .card:hover{
- transform: translateY(-2px);
- box-shadow: 0 16px 30px rgba(106, 72, 45, 0.12);
+ transform: translateY(-3px);
+ box-shadow: 0 20px 40px rgba(106, 72, 45, 0.16);
 }
 
 .card-top{
@@ -780,6 +780,87 @@ mark{
   box-shadow: 0 0 0 3px var(--primary-soft);
   transform: translateY(-4px);
 }
+
+.card.highlighted:hover {
+ transform: translateY(-6px);
+ box-shadow: 0 20px 40px rgba(106, 72, 45, 0.18), 0 0 0 3px var(--primary-soft);
+}
+
+/* ── 攤位卡片：樓棟色條 ── */
+.card-title-row {
+ display: flex;
+ align-items: stretch;
+ gap: 12px;
+ flex: 1;
+ min-width: 0;
+}
+
+.card-building-bar {
+ width: 5px;
+ border-radius: 999px;
+ flex-shrink: 0;
+ align-self: stretch;
+ min-height: 40px;
+}
+
+.bar-shuxiang { background: linear-gradient(180deg, #f59e42, #fad07a); }
+.bar-xingkong { background: linear-gradient(180deg, #60aadf, #a8d4f5); }
+.bar-ledong   { background: linear-gradient(180deg, #4caf8a, #8edfc0); }
+.bar-default  { background: linear-gradient(180deg, #d0c8c0, #e8e2da); }
+
+/* ── 攤位卡片：樓棟 badge（pill）顏色 ── */
+.pill-building-shuxiang { background: #fff0db; color: #b96a10; border: 1px solid #fad59a; }
+.pill-building-xingkong { background: #e5f0ff; color: #2256a8; border: 1px solid #aac8f5; }
+.pill-building-ledong   { background: #e2f7ef; color: #1a7a55; border: 1px solid #9eddc6; }
+.pill-building-default  { background: #f0ece8; color: #7a6e66; border: 1px solid #d8d0c8; }
+
+/* ── 品項截斷：+N 更多 pill ── */
+.items-more {
+ display: inline-flex;
+ align-items: center;
+ background: #f0ece8;
+ border-radius: 999px;
+ padding: 2px 8px;
+ font-size: 11px;
+ color: #83766d;
+ vertical-align: middle;
+ margin-left: 4px;
+}
+
+/* ── 搜尋空結果狀態 ── */
+.empty-state {
+ text-align: center;
+ padding: 48px 24px;
+ background: #ffffff;
+ border: 1px dashed var(--line);
+ border-radius: 24px;
+ margin-top: 8px;
+}
+.empty-state-icon  { font-size: 48px; margin-bottom: 12px; }
+.empty-state-title { margin: 0 0 8px; font-size: 18px; font-weight: 800; color: var(--text); }
+.empty-state-sub   { margin: 0 0 20px; font-size: 13px; color: var(--muted); line-height: 1.8; }
+/* 配合 .btn.btn-soft 一起使用，由 .btn 提供基礎幾何形狀 */
+.empty-state-reset {
+ background: var(--primary-soft);
+ color: #bc476b;
+ border: 1px solid #ffbfd0;
+}
+
+/* ── 區塊標題 eyebrow pill ── */
+/* 區塊標題小標籤，與 hero 區塊的 .eyebrow 無繼承關係 */
+.eyebrow-pill {
+ display: inline-flex;
+ align-items: center;
+ gap: 6px;
+ padding: 5px 12px;
+ border-radius: 999px;
+ font-size: 12px;
+ font-weight: 700;
+ margin-bottom: 6px;
+}
+.ep-pink { background: #ffe1ea; border: 1px solid #ffbfd0; color: #bc476b; }
+.ep-blue { background: #e5f0ff; border: 1px solid #aac8f5; color: #2256a8; }
+.ep-mint { background: #dff4ef; border: 1px solid #9eddc6; color: #1a7a55; }
 
 @media (max-width: 980px){
  .hero-grid,
