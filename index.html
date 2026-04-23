@@ -305,7 +305,7 @@ function parseCSVToData(csvText) {
   const data = [];
   for (let i = 1; i < lines.length; i++) {
     if (!lines[i].trim()) continue;
-    const cols = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/^"|"$/g, '').trim());
+    const cols = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/^"|"$|^'|'$/g, '').trim());
     if (cols[0]) {
       data.push({ grade: cols[0], class: cols[1] || "", rawProducts: cols[2] || "" });
     }
@@ -329,7 +329,6 @@ function mergeRegistryWithData(csvData, localData) {
     const csvItem = csvMap[shortName];
     const localItem = localMap[shortName];
     
-    // 名稱修正：如果是朝陽，顯示為「朝陽班」
     let grade = shortName.includes('-') ? `${shortName.split('-')[0]}年級` : (shortName === '朝陽' ? '朝陽班' : '校園位置');
     let className = shortName.includes('-') ? shortName.split('-')[1] : '';
     let displayName = shortName.includes('-') ? `${grade}${className}班` : (shortName === '朝陽' ? '朝陽班' : shortName);
@@ -402,7 +401,9 @@ function renderStalls() {
     const matchTag = !activeTag || (item.tags && item.tags.includes(activeTag));
     return matched && matchGrade && matchBuilding && matchFloor && matchTag;
   });
+
   resultCount.textContent = `共 ${filtered.length} 筆`;
+
   if (filtered.length === 0) {
     stallGrid.innerHTML = `
       <div class="empty-state">
@@ -414,22 +415,30 @@ function renderStalls() {
     `;
     return;
   }
+
   const keyword = (searchInput?.value || '').trim();
   if (keyword.length > 0 || gradeFilter.value || buildingFilter.value || floorFilter.value || activeTag) {
     highlightOnMap(filtered[0].estimatedRoomCode, filtered[0].displayName, false);
-    if (keyword.length > 0) {
-      document.getElementById('stalls').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+
+    // 有查詢條件時，自動滑到第一筆結果
+    requestAnimationFrame(() => {
+      const firstCard = stallGrid.querySelector('.card');
+      if (firstCard) {
+        firstCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        document.getElementById('stalls').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
   }
+
   stallGrid.innerHTML = filtered.map(item => {
     const bc = getBuildingClass(item.building);
-    const MAX_ITEMS = 3;
+
+    // ✅ 顯示全部品項（取消 3 項限制）
     const allItems = item.items.length > 0 ? item.items : [item.rawProducts];
-    const visibleItems = allItems.slice(0, MAX_ITEMS);
-    const hiddenCount = allItems.length - MAX_ITEMS;
-    const moreHtml = hiddenCount > 0
-      ? `<span class="items-more">+${hiddenCount} 更多</span>`
-      : '';
+    const visibleItems = allItems;
+    const moreHtml = '';
+
     return `
     <article class="card ${item.hasStall ? '' : 'no-stall'}" onclick="highlightOnMap('${item.estimatedRoomCode}', '${item.displayName}', true)" style="cursor:pointer; border-style: ${item.hasStall ? 'solid' : 'dashed'};">
       <div class="card-top">
