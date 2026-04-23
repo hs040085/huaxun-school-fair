@@ -201,7 +201,6 @@ const FLOOR_NAMES = { "1": "一樓", "2": "二樓", "3": "三樓", "4": "四樓"
 function getRoomCoordinates(roomCode) {
   const b = roomCode.charAt(0).toUpperCase();
   const f = parseInt(roomCode.charAt(1));
-  const r = parseInt(roomCode.substring(2));
   if (b === 'A') {
     const yMap = { 1: 86.0, 2: 81.0, 3: 77.6, 4: 73.4, 5: 69.8 };
     return { x: 7.8, y: yMap[f] || 81.0, w: 84.4, h: 4.2 };
@@ -416,28 +415,13 @@ function renderStalls() {
     return;
   }
 
-  const keyword = (searchInput?.value || '').trim();
-  if (keyword.length > 0 || gradeFilter.value || buildingFilter.value || floorFilter.value || activeTag) {
-    highlightOnMap(filtered[0].estimatedRoomCode, filtered[0].displayName, false);
-
-    // 有查詢條件時，自動滑到第一筆結果
-    requestAnimationFrame(() => {
-      const firstCard = stallGrid.querySelector('.card');
-      if (firstCard) {
-        firstCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      } else {
-        document.getElementById('stalls').scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    });
-  }
-
   stallGrid.innerHTML = filtered.map(item => {
     const bc = getBuildingClass(item.building);
-
-    // ✅ 顯示全部品項（取消 3 項限制）
     const allItems = item.items.length > 0 ? item.items : [item.rawProducts];
     const visibleItems = allItems;
     const moreHtml = '';
+
+    const roomLabel = (item.shortName === '家長會') ? 'A104(川堂)' : item.estimatedRoomCode;
 
     return `
     <article class="card ${item.hasStall ? '' : 'no-stall'}" onclick="highlightOnMap('${item.estimatedRoomCode}', '${item.displayName}', true)" style="cursor:pointer; border-style: ${item.hasStall ? 'solid' : 'dashed'};">
@@ -446,7 +430,7 @@ function renderStalls() {
           <div class="card-building-bar ${bc.bar}"></div>
           <div class="title-wrap">
             <h4>${item.displayName}</h4>
-            <p>${item.shortName}｜${item.estimatedRoomCode}</p>
+            <p>${item.shortName}｜${roomLabel}</p>
           </div>
         </div>
         <span class="pill ${bc.pill}">${item.building || '其他'}</span>
@@ -468,6 +452,20 @@ function renderStalls() {
       </div>
     </article>`;
   }).join('');
+
+  const keyword = (searchInput?.value || '').trim();
+  if (keyword.length > 0 || gradeFilter.value || buildingFilter.value || floorFilter.value || activeTag) {
+    highlightOnMap(filtered[0].estimatedRoomCode, filtered[0].displayName, false);
+
+    requestAnimationFrame(() => {
+      const firstCard = stallGrid.querySelector('.card');
+      if (firstCard) {
+        firstCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        document.getElementById('stalls').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  }
 }
 
 function renderEvents() {
@@ -531,7 +529,9 @@ function createChip(text, value) {
 
 resetBtn?.addEventListener('click', () => {
   searchInput.value = ''; gradeFilter.value = ''; buildingFilter.value = ''; floorFilter.value = ''; activeTag = '';
-  if (mapMarker) mapMarker.style.display = 'none'; renderTagChips(); renderStalls();
+  if (mapMarker) mapMarker.style.display = 'none';
+  renderTagChips();
+  renderStalls();
 });
 
 loadData();
